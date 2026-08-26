@@ -310,7 +310,13 @@
     if(action==='answer'){await answer(el.dataset.option);return}
     if(action==='question-back'){if(state.stack.length>1){state.stack.pop();render()}else{state.mode='concierge';render()}return}
     if(action==='send-free'){await sendFree();return}
-    if(action==='image'){state.mode='concierge';render();return}
+    if(action==='image'){
+      // 10番の瓦版だけは、既存の完成済み回覧板ページへ直接つなぐ。
+      if(String(el.dataset.number)==='10'){
+        location.href='https://ichirohns-jpg.github.io/ShikiConcierge-18/app.html';return;
+      }
+      state.mode='concierge';render();return;
+    }
   });
   document.querySelectorAll('.bottom-nav button').forEach(b=>b.addEventListener('click',()=>setMode(b.dataset.nav)));
   begin();
