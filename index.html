@@ -90,7 +90,7 @@
 
   const GAS_URL = 'https://script.google.com/macros/s/AKfycbwjFKd7mqWORk-lhQaj1qscyLiGoSCA_E9oyn61ZP_5s1du177ikPsVEumTIEjPthlEPg/exec';
   const APP_NAME = '志木市シニア生活相談DX';
-  const state = { mode:'home', home:null, images:[], themes:[], questions:[], contacts:[], articles:[], stack:[], currentTheme:null, currentQuestion:null, loading:false, loadingQuestion:false };
+  const state = { mode:'home', home:null, images:[], themes:[], questions:[], contacts:[], articles:[], stack:[], currentTheme:null, currentQuestion:null, freeText:'', loading:false, loadingQuestion:false };
   const $ = (s,root=document) => root.querySelector(s);
   const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const text = v => String(v ?? '').trim();
@@ -99,6 +99,24 @@
   const dataOf = (res) => res && res.data ? res.data : (res || {});
   const arrFrom = (obj, keys) => { for(const k of keys){ if(Array.isArray(obj?.[k])) return obj[k]; } return []; };
   const safeUrl = (url) => { const u=text(url); return /^(https?:|tel:|mailto:)/i.test(u) ? u : ''; };
+  const GENERIC_CITY_URL='https://www.city.shiki.lg.jp/';
+  const HUB_CONTACT={contactId:'LOCAL-SENIOR-HUB',name:'高齢者あんしん相談センター',role:'高齢者の介護・健康・生活・家族・地域の困りごとの総合相談',phone:'048-473-1395',hours:'志木市公式情報で確認',address:'志木市内のお住まいの地区の相談センター',officialUrl:'https://www.city.shiki.lg.jp/site/kourei-soudan/2842.html',note:'相談先が分からない場合も、困りごとをそのまま伝えてください。担当窓口へつないでもらえます。'};
+  const CONSUMER_CONTACT={contactId:'LOCAL-CONSUMER',name:'志木市消費生活センター',role:'詐欺・悪質商法・不審な請求の相談',phone:'048-456-6202',hours:'月曜日から金曜日 10時から正午、13時から15時30分（祝日・年末年始を除く）',address:'志木市役所2階',officialUrl:'https://www.city.shiki.lg.jp/soshiki/17/2173.html',note:'緊急の危険や脅迫がある場合は110番を優先してください。'};
+  const LIFE_CONTACT={contactId:'LOCAL-LIFE-SUPPORT',name:'志木市役所 生活援護課生活援護グループ',role:'生活保護の相談・申請',phone:'048-473-1457',hours:'志木市公式情報で確認',address:'志木市役所',officialUrl:'https://www.city.shiki.lg.jp/soshiki/19/2688.html',note:'病気で働けない、生活費・家賃・食事に困っていることをそのまま伝えてください。'};
+  const LOCAL_THEME_CATALOG=[
+    {themeId:'T001',name:'介護・認知症',description:'介護認定、介護サービス、認知症、家族の介護負担'},
+    {themeId:'T002',name:'施設入所',description:'施設の種類、費用、入所準備、身元保証'},
+    {themeId:'T003',name:'空き家・相続',description:'施設入所や相続に伴う家の管理、売却、賃貸、解体'},
+    {themeId:'T004',name:'一人暮らし・見守り',description:'孤立、安否確認、支援者がいない、外出しない'},
+    {themeId:'T005',name:'お金・生活困窮・詐欺',description:'生活費、年金、生活保護、財産管理、詐欺、悪質商法'},
+    {themeId:'T006',name:'近隣・地域トラブル',description:'騒音、境界、庭木、ごみ、嫌がらせ、自治会'},
+    {themeId:'T007',name:'健康・医療',description:'通院、薬、フレイル、栄養、口腔、退院後の生活'},
+    {themeId:'T008',name:'食事・生活支援',description:'配食、買い物、掃除、洗濯、ごみ出し、家事'},
+    {themeId:'T009',name:'交通・移動',description:'免許返納、通院、買い物、バス、移動支援'},
+    {themeId:'T010',name:'防災・防犯',description:'避難、火災、電話詐欺、見守り、行方不明'},
+    {themeId:'T011',name:'スマートフォン・手続き',description:'スマホ、電池、オンライン申請、マイナンバー'},
+    {themeId:'T012',name:'居場所・生きがい',description:'地域の居場所、趣味、仕事、ボランティア、社会参加'}
+  ];
   // スプレッドシートの仮入力を市民向け画面に表示しない
   const isPlaceholder = (value) => /^(要登録|未登録|未確認|要確認|登録予定|準備中)$/u.test(text(value));
   const cleanContactValue = (value) => isPlaceholder(value) ? '' : text(value);
@@ -139,7 +157,10 @@
   }
   function normalizeThemes(){
     const raw = state.themes.length ? state.themes : arrFrom(dataOf(state.home),['themes']);
-    state.themes = raw.map((x,i)=>({themeId:first(x.themeId,x.id,`T${String(i+1).padStart(3,'0')}`),name:first(x.name,x.title,'相談テーマ'),description:first(x.description,x.detail,''),audience:first(x.audience,''),status:first(x.status,'公開'),startQuestionId:first(x.startQuestionId,x.startId,'')}));
+    const fromServer=raw.map((x,i)=>({themeId:first(x.themeId,x.id,`T${String(i+1).padStart(3,'0')}`),name:first(x.name,x.title,'相談テーマ'),description:first(x.description,x.detail,''),audience:first(x.audience,''),status:first(x.status,'公開'),startQuestionId:first(x.startQuestionId,x.startId,'')}));
+    const ids=new Set(fromServer.map(x=>String(x.themeId)));
+    LOCAL_THEME_CATALOG.forEach(x=>{if(!ids.has(x.themeId))fromServer.push({...x,audience:'本人・家族・支援者',status:'公開',startQuestionId:''})});
+    state.themes=fromServer;
   }
   function normalizeQuestions(raw){
     const normalized = arr(raw).map((x,i)=>({
@@ -222,13 +243,50 @@
 
   function findTheme(id){return state.themes.find(t=>String(t.themeId)===String(id))||null}
   function findQuestion(id){return state.questions.find(q=>String(q.questionId)===String(id))||null}
+  function localResult(themeName,reason,contact){
+    return {data:{type:'result',resultId:'LOCAL-'+text(contact.contactId),matchedTheme:{name:themeName},reason:reason,understanding:'相談内容を整理しました。まず次の窓口へ相談してください。',contacts:[contact]}};
+  }
+  function localFallbackQuestion(theme){
+    const id=text(theme?.themeId);if(!id)return null;
+    const defs={
+      T001:{text:'介護・認知症について、いちばん困っていることは何ですか？',options:['介護サービスを知りたい','もの忘れ・認知症が心配','家族の介護が限界']},
+      T002:{text:'施設入所について、いちばん知りたいことは何ですか？',options:['施設の種類・費用','入所準備・身元保証','家族だけで決めるのが難しい']},
+      T003:{text:'空き家・相続について、いちばん困っていることは何ですか？',options:['家の管理・片付け','相続・名義','売却・賃貸・解体']},
+      T004:{text:'一人暮らしについて、いちばん困っていることは何ですか？',options:['安否確認・見守り','買い物や日常生活の支援','相談できる家族や支援者がいない']},
+      T005:{text:'お金について、いちばん近いものはどれですか？',options:['生活費・家賃・食事に困っている','年金・制度・財産の相談','詐欺・悪質商法・不審な請求']},
+      T007:{text:'健康・医療について、いちばん困っていることは何ですか？',options:['病気・通院・薬','退院後の生活','食事・体力・もの忘れ']},
+      T008:{text:'生活支援について、いちばん必要なことは何ですか？',options:['食事・買い物','掃除・洗濯・ごみ出し','家事を頼める人がいない']},
+      T009:{text:'移動について、いちばん困っていることは何ですか？',options:['通院・買い物に行けない','免許返納を考えている','バスや移動支援を知りたい']},
+      T010:{text:'防災・防犯について、いまの状態はどれですか？',options:['いま危険がある','災害への備えを知りたい','詐欺・防犯・行方不明が心配']},
+      T011:{text:'スマートフォン・手続きについて、いちばん困っていることは何ですか？',options:['スマホ・電池の処分','オンライン申請','マイナンバーなどの手続き']},
+      T012:{text:'地域とのつながりについて、いちばん近いものはどれですか？',options:['居場所・趣味を探したい','仕事・ボランティアを探したい','外出や人とのつながりが減った']}
+    }[id];
+    if(!defs)return null;
+    const opts=defs.options.map((label,i)=>{
+      let contact=HUB_CONTACT;
+      let reason='高齢者の相談窓口へつなぎます。';
+      if(id==='T005'&&i===0){contact=LIFE_CONTACT;reason='生活費や家賃など、生活そのものに困っている場合の相談先です。'}
+      if(id==='T005'&&i===2){contact=CONSUMER_CONTACT;reason='詐欺や不審な請求の相談先です。'}
+      if(id==='T010'&&i===0){contact={contactId:'LOCAL-EMERGENCY',name:'緊急連絡先 110番・119番',role:'事件・暴力・火災・救急など、いま危険がある場合',phone:'110',hours:'24時間',address:'安全な場所から連絡',officialUrl:'https://www.city.shiki.lg.jp/soshiki/12/2503.html',note:'火災・救急は119番です。'};reason='いま危険がある場合は、相談窓口より緊急連絡先を優先します。'}
+      return {id:'LOCAL-'+id+'-'+(i+1),label:label,value:label,localResult:localResult(theme.name,reason,contact)};
+    });
+    return {questionId:'LOCAL-'+id+'-Q1',themeId:id,step:1,text:defs.text,help:'答えに迷っても大丈夫です。近いものを一つ選んでください。',options:opts,local:true};
+  }
   async function startQuestion(theme){
     state.currentTheme=theme;state.stack=[];state.currentQuestion=null;state.loadingQuestion=true;state.mode='question';render();
     try{
       const r=await api('concierge',{themeId:theme.themeId});
       applyQuestionResponse(r);
-      if(!state.currentQuestion){state.mode='free'}
-    }catch(e){state.mode='free'}
+      if(!state.currentQuestion){
+        state.currentQuestion=localFallbackQuestion(theme);
+        if(state.currentQuestion)state.stack=[state.currentQuestion.questionId];
+        else state.mode='free';
+      }
+    }catch(e){
+      state.currentQuestion=localFallbackQuestion(theme);
+      if(state.currentQuestion)state.stack=[state.currentQuestion.questionId];
+      else state.mode='free';
+    }
     state.loadingQuestion=false;render();
   }
   function conciergeView(){
@@ -241,7 +299,8 @@
     const q=state.currentQuestion||findQuestion(state.stack[state.stack.length-1]);
     if(!q)return freeView();
     const options=q.options.length?q.options.map(o=>`<button class="choice" data-action="answer" data-option="${esc(first(o.value,o.id,o.label))}">${esc(o.label)}</button>`).join(''):'<div class="empty">この質問の選択肢を準備中です。</div>';
-    return shell('相談を整理しています',`<p class="crumb">${esc(state.currentTheme?.name||'相談')}　質問 ${state.stack.length}</p><section class="question-box"><div class="question-count">一つずつ選んでください</div><h2>${esc(q.text)}</h2>${q.help?`<p class="small">${esc(q.help)}</p>`:''}<div class="choices">${options}</div></section><div class="actions"><button class="btn btn-light" data-action="question-back">前の質問</button><button class="btn btn-light" data-action="free">文章で相談</button></div>`,true);
+    const inputSummary=state.freeText?`<div class="notice"><strong>入力内容</strong><br>${esc(state.freeText)}</div>`:'';
+    return shell('相談を整理しています',`${inputSummary}<p class="crumb">${esc(state.currentTheme?.name||'相談')}　質問 ${state.stack.length}</p><section class="question-box"><div class="question-count">一つずつ選んでください</div><h2>${esc(q.text)}</h2>${q.help?`<p class="small">${esc(q.help)}</p>`:''}<div class="choices">${options}</div></section><div class="actions"><button class="btn btn-light" data-action="question-back">前の質問</button><button class="btn btn-light" data-action="free">文章で相談</button></div>`,true);
   }
   function freeView(){
     return shell('文章で相談する',`<p>困っていることを、短い文章で入力してください。</p><label class="field-label" for="freeText">相談内容</label><textarea id="freeText" placeholder="例：施設に入るので、家をどうしたらよいか分からない"></textarea><div class="actions"><button class="btn btn-primary" data-action="send-free">相談先を探す</button><button class="btn btn-light" data-action="concierge">テーマから選ぶ</button></div><p class="small">送信内容は相談先を探すために使います。緊急情報は入力せず、直接119番などへ連絡してください。</p>`,true);
@@ -251,13 +310,20 @@
     const reason=first(d.reason,d.message,d.explanation,d.understanding,'選択内容に近い相談先を案内します。');
     // 最終結果では、返ってきた相談先だけを使う。
     // state.contacts（ホームの全相談先）へ戻すと、無関係なリンクまで表示される。
-    const rawContacts=arrFrom(d,['contacts','results']);
+    const responseContacts=arrFrom(d,['contacts','results']);
     const resultContactIds=[d.contactId].concat(Array.isArray(d.contactIds)?d.contactIds:[])
       .map(x=>text(x)).filter(Boolean);
-    let contacts=rawContacts;
-    if(resultContactIds.length){
-      contacts=rawContacts.filter(c=>resultContactIds.includes(text(first(c.contactId,c.id,''))));
+    // サーバーが返した相談先だけを使う。IDがある場合だけ、読み込み済み一覧から補完する。
+    let contacts=responseContacts;
+    if(!contacts.length && resultContactIds.length){
+      contacts=state.contacts.filter(c=>resultContactIds.includes(text(first(c.contactId,c.id,''))));
     }
+    contacts=contacts.filter(c=>{
+      const phone=cleanContactValue(first(c.phone,c.tel,''));
+      const url=safeUrl(first(c.officialUrl,c.url));
+      // 「要登録」＋市トップだけの仮データは、相談先として表示しない。
+      return !(isPlaceholder(first(c.phone,c.tel,'')) && (!url || url===GENERIC_CITY_URL));
+    });
     const seenContactIds=new Set();
     contacts=contacts.filter(c=>{
       const id=text(first(c.contactId,c.id,''));
@@ -266,7 +332,8 @@
       return true;
     }).slice(0,1);
     const list=contacts.map(c=>{const cc={...c,name:first(c.name,c.title,'相談窓口'),role:first(c.role,c.description,''),phone:cleanContactValue(first(c.phone,c.tel,'')),hours:cleanContactValue(first(c.hours,'')),address:cleanContactValue(first(c.address,'')),officialUrl:safeUrl(first(c.officialUrl,c.url)),note:cleanContactValue(first(c.note,''))};return `<div class="contact"><h3>${esc(cc.name)}</h3>${cc.role?`<p>${esc(cc.role)}</p>`:''}${cc.phone?`<div class="phone"><a href="${esc(/^\d/.test(cc.phone)?'tel:'+cc.phone.replace(/[^\d+]/g,''):safeUrl(cc.phone))}">${esc(cc.phone)}</a></div>`:''}${cc.hours?`<p class="small">受付：${esc(cc.hours)}</p>`:''}${cc.address?`<p class="small">場所：${esc(cc.address)}</p>`:''}${cc.officialUrl?`<p><a href="${esc(cc.officialUrl)}" target="_blank" rel="noopener">公式情報を確認する</a></p>`:''}${cc.note?`<p class="small">${esc(cc.note)}</p>`:''}</div>`}).join('');
-    const fallback=contacts.length?'':`<div class="contact"><h3>相談窓口を確認してください</h3><p>志木市役所または地域包括支援センターへ、困りごとの内容を伝えてください。</p><p><a href="https://www.city.shiki.lg.jp/" target="_blank" rel="noopener">志木市公式サイトを開く</a></p></div>`;
+    const fallbackContact=/(詐欺|悪質商法|不審な請求|だまされた|騙された)/u.test(text(state.freeText)+' '+text(matched)+' '+text(reason))?CONSUMER_CONTACT:HUB_CONTACT;
+    const fallback=contacts.length?'':`<div class="contact"><h3>${esc(fallbackContact.name)}</h3><p>${esc(fallbackContact.role)}</p><p class="phone"><a href="tel:${esc(fallbackContact.phone.replace(/[^\d+]/g,''))}">${esc(fallbackContact.phone)}</a></p><p class="small">${esc(fallbackContact.address)}</p><p><a href="${esc(fallbackContact.officialUrl)}" target="_blank" rel="noopener">公式情報を確認する</a></p><p class="small">${esc(fallbackContact.note)}</p></div>`;
     return shell('相談先の案内',`<section class="result"><h2>${esc(matched)}</h2><p class="lead">${esc(reason)}</p>${d.understanding?`<p>${esc(d.understanding)}</p>`:''}${list||fallback}</section><div class="actions"><button class="btn btn-primary" data-action="concierge">別の相談をする</button><button class="btn btn-light" data-action="home">ホームへ戻る</button></div><div class="notice">制度・電話番号・受付時間は変更されることがあります。電話前に公式情報をご確認ください。</div>`,true);
   }
 
@@ -296,6 +363,8 @@
   async function answer(optionValue){
     const q=state.currentQuestion||findQuestion(state.stack[state.stack.length-1]);if(!q)return;
     const o=q.options.find(x=>String(first(x.value,x.id,x.label))===String(optionValue))||q.options.find(x=>String(x.id)===String(optionValue));if(!o)return;
+    // シートに質問がないテーマは、このページ内の予備ルートで必ず終点まで進める。
+    if(o.localResult){state.lastResult=o.localResult;state.mode='result';render();return}
     try{
       const r=await api('concierge',{themeId:state.currentTheme?.themeId,questionId:q.questionId,answer:first(o.value,o.label,o.id)});
       const d=dataOf(r);
@@ -309,9 +378,45 @@
     try{const r=await api('concierge',params);state.lastResult=r;state.mode='result';render()}
     catch(e){state.lastResult={data:{matchedTheme:{name:state.currentTheme?.name},reason:'選択内容を整理しました。下の相談先を確認してください。',contacts:state.contacts}};state.mode='result';render()}
   }
+
+  // 生活に直結する明確な入力は、テーマ名の単語一致に任せない。
+  // 「お金」という単語だけを拾って詐欺相談へ送る誤案内を防ぐ。
+  function localSafetyRoute(input){
+    const s=text(input);
+    const hasLifeHardship=/(生活保護|お金がない|生活できない|生活ができない|生活費がない|家賃が払えない|食べるものがない|暮らせない)/u.test(s);
+    const hasWorkHealth=/(病気で(働け|仕事ができ)|働けない|仕事ができない|収入がない|収入が減った|失業)/u.test(s);
+    const hasScam=/(詐欺|悪質商法|不審な請求|だまされた|騙された)/u.test(s);
+    if(hasScam){
+      return {data:{type:'result',resultId:'LOCAL-CONSUMER',matchedTheme:{name:'詐欺・悪質商法'},reason:'詐欺や不審な請求の相談先を案内します。',understanding:'契約や支払いの状況を整理して、消費生活センターへ相談してください。',contacts:[CONSUMER_CONTACT]}};
+    }
+    if(hasLifeHardship && !hasScam && (hasWorkHealth || /生活保護|生活できない|生活ができない|生活費がない|家賃が払えない|食べるものがない|暮らせない/u.test(s))){
+      return {data:{type:'result',resultId:'LOCAL-LIFE-SUPPORT',matchedTheme:{name:'生活保護・生活困窮'},reason:'生活費に困り、病気などで働けない場合の相談先を案内します。',understanding:'まず志木市役所の生活援護課へ相談してください。生活保護の申請や、生活に困っている場合の相談を受け付けています。',contacts:[{contactId:'LOCAL-LIFE-SUPPORT',name:'志木市役所 生活援護課生活援護グループ',role:'生活保護の相談・申請',phone:'048-473-1457',hours:'志木市公式情報で確認',address:'志木市役所',officialUrl:'https://www.city.shiki.lg.jp/soshiki/19/2688.html',note:'病気で働けない、生活費・家賃・食事に困っていることをそのまま伝えてください。'}]}};
+    }
+    return null;
+  }
+
   async function sendFree(){
     const input=text($('#freeText')?.value);if(!input){alert('相談内容を入力してください。');return}
-    try{const r=await api('concierge',{inputText:input,text:input,q:input});state.lastResult=r;state.mode='result';render()}
+    state.freeText=input;
+    const safeRoute=localSafetyRoute(input);
+    if(safeRoute){state.lastResult=safeRoute;state.mode='result';render();return}
+    try{
+      const r=await api('concierge',{inputText:input,text:input,q:input});
+      const d=dataOf(r);
+      // 自由入力の返事が「理解＋次の質問」なら、ここで止めず質問画面へ進む。
+      if(d.type==='understanding'){
+        applyQuestionResponse(r);
+        if(!state.currentTheme && d.matchedTheme)state.currentTheme=d.matchedTheme;
+        const fallbackQuestion=localFallbackQuestion(state.currentTheme||findTheme(d.matchedTheme?.themeId));
+        if(d.question){state.mode='question';render();return;}
+        if(fallbackQuestion){state.currentQuestion=fallbackQuestion;state.stack=[fallbackQuestion.questionId];state.mode='question';render();return;}
+      }
+      // テーマを絞れない場合は、もう一度テーマを選べる画面へ戻す。
+      if(d.type==='choose_theme'){
+        state.mode='concierge';render();return;
+      }
+      state.lastResult=r;state.mode='result';render();
+    }
     catch(e){state.lastResult={data:{matchedTheme:{name:'入力内容の相談'},reason:'入力内容を確認し、近い相談先を案内します。',contacts:state.contacts}};state.mode='result';render()}
   }
 
