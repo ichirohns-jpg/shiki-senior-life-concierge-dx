@@ -23,6 +23,7 @@
     .topbar .mark{width:42px;height:42px;border-radius:14px;background:linear-gradient(135deg,#0b6fa4,#39a5d3);color:#fff;display:grid;place-items:center;font-weight:800;font-size:20px}
     .wrap{max-width:900px;margin:0 auto;padding:18px 14px}
     .hero{background:linear-gradient(135deg,#0b6fa4,#39a5d3);color:#fff;border-radius:24px;padding:24px 20px;margin-bottom:16px;box-shadow:var(--shadow)}
+    .home-banner{display:block;width:100%;height:auto;max-height:280px;object-fit:cover;border-radius:20px;margin:0 0 16px;box-shadow:var(--shadow);background:#eaf7ff}
     .hero h2{font-size:28px;line-height:1.35;margin:0 0 8px}
     .hero p{margin:0;font-size:18px}
     .notice{background:var(--yellow);border:1px solid #f0d875;border-radius:16px;padding:14px 16px;margin:14px 0;color:#5f4b09}
@@ -229,7 +230,7 @@
     normalizeImages();normalizeThemes();
     const d=dataOf(state.home),desc=first(d.description,'高齢者と家族が、困りごとを一つずつ整理して、相談先までたどり着くための案内です。');
     const cards=state.images.length?state.images.map(imageCard).join(''):'<div class="empty">画像一覧を読み込めませんでした。</div>';
-    return shell(APP_NAME,`<section class="hero"><h2>困ったことを<br>一緒に整理します</h2><p>${esc(desc)}</p></section>
+    return shell(APP_NAME,`<img class="home-banner" src="banner_akiya_soudan.png" alt="空き家について家族で相談している様子" loading="eager"><section class="hero"><h2>困ったことを<br>一緒に整理します</h2><p>${esc(desc)}</p></section>
       <div class="actions"><button class="btn btn-primary" data-action="concierge">相談を始める</button><button class="btn btn-blue" data-action="board">回覧板を見る</button></div>
       <div class="notice">緊急の場合は、この案内だけで判断せず、119番・110番・近くの人へ連絡してください。</div>
       <h2 class="section-title">困りごとの入口</h2><p class="small">近いものをタップしてください。次の質問で少しずつ絞り込みます。</p><section class="grid">${cards}</section>`);
