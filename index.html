@@ -88,7 +88,7 @@
 (() => {
   'use strict';
 
-  const GAS_URL = 'https://script.google.com/macros/s/AKfycbw97rE3XCrM70HC79i9-aRiIHiK5_QtE-MHRYviYIc0VooFydDEk3DWaEjmzx1HarOlbA/exec';
+  const GAS_URL = 'https://script.google.com/macros/s/AKfycbwjFKd7mqWORk-lhQaj1qscyLiGoSCA_E9oyn61ZP_5s1du177ikPsVEumTIEjPthlEPg/exec';
   const APP_NAME = '志木市シニア生活相談DX';
   const state = { mode:'home', home:null, images:[], themes:[], questions:[], contacts:[], articles:[], stack:[], currentTheme:null, currentQuestion:null, loading:false, loadingQuestion:false };
   const $ = (s,root=document) => root.querySelector(s);
@@ -115,7 +115,9 @@
       const q = new URLSearchParams({callback:cb, ...params});
       let finished=false;
       const clean=()=>{finished=true;clearTimeout(timer);script.remove();try{delete window[cb]}catch(e){window[cb]=undefined}};
-      const timer=setTimeout(()=>{if(finished)return;clean();reject(new Error('通信がタイムアウトしました'))},60000);
+      // 60秒待たせず、15秒で画面にエラーを表示する。
+      // スマホで「読み込み中」のまま固まって見えるのを防ぐ。
+      const timer=setTimeout(()=>{if(finished)return;clean();reject(new Error('通信がタイムアウトしました。GASの公開設定または通信を確認してください。'))},15000);
       window[cb]=(payload)=>{if(finished)return;clean();if(payload && payload.ok===false) reject(new Error(payload.message||'データを取得できませんでした'));else resolve(payload)};
       script.onerror=()=>{if(finished)return;clean();reject(new Error('通信に失敗しました'))};
       script.src=GAS_URL+'?'+q.toString();
@@ -247,7 +249,22 @@
   function resultView(result){
     const d=dataOf(result);const matched=first(d.matchedTheme?.name,d.theme?.name,d.themeName,state.currentTheme?.name,'相談結果');
     const reason=first(d.reason,d.message,d.explanation,d.understanding,'選択内容に近い相談先を案内します。');
-    const contacts=arrFrom(d,['contacts','results']).length?arrFrom(d,['contacts','results']):state.contacts;
+    // 最終結果では、返ってきた相談先だけを使う。
+    // state.contacts（ホームの全相談先）へ戻すと、無関係なリンクまで表示される。
+    const rawContacts=arrFrom(d,['contacts','results']);
+    const resultContactIds=[d.contactId].concat(Array.isArray(d.contactIds)?d.contactIds:[])
+      .map(x=>text(x)).filter(Boolean);
+    let contacts=rawContacts;
+    if(resultContactIds.length){
+      contacts=rawContacts.filter(c=>resultContactIds.includes(text(first(c.contactId,c.id,''))));
+    }
+    const seenContactIds=new Set();
+    contacts=contacts.filter(c=>{
+      const id=text(first(c.contactId,c.id,''));
+      if(id&&seenContactIds.has(id))return false;
+      if(id)seenContactIds.add(id);
+      return true;
+    }).slice(0,1);
     const list=contacts.map(c=>{const cc={...c,name:first(c.name,c.title,'相談窓口'),role:first(c.role,c.description,''),phone:cleanContactValue(first(c.phone,c.tel,'')),hours:cleanContactValue(first(c.hours,'')),address:cleanContactValue(first(c.address,'')),officialUrl:safeUrl(first(c.officialUrl,c.url)),note:cleanContactValue(first(c.note,''))};return `<div class="contact"><h3>${esc(cc.name)}</h3>${cc.role?`<p>${esc(cc.role)}</p>`:''}${cc.phone?`<div class="phone"><a href="${esc(/^\d/.test(cc.phone)?'tel:'+cc.phone.replace(/[^\d+]/g,''):safeUrl(cc.phone))}">${esc(cc.phone)}</a></div>`:''}${cc.hours?`<p class="small">受付：${esc(cc.hours)}</p>`:''}${cc.address?`<p class="small">場所：${esc(cc.address)}</p>`:''}${cc.officialUrl?`<p><a href="${esc(cc.officialUrl)}" target="_blank" rel="noopener">公式情報を確認する</a></p>`:''}${cc.note?`<p class="small">${esc(cc.note)}</p>`:''}</div>`}).join('');
     const fallback=contacts.length?'':`<div class="contact"><h3>相談窓口を確認してください</h3><p>志木市役所または地域包括支援センターへ、困りごとの内容を伝えてください。</p><p><a href="https://www.city.shiki.lg.jp/" target="_blank" rel="noopener">志木市公式サイトを開く</a></p></div>`;
     return shell('相談先の案内',`<section class="result"><h2>${esc(matched)}</h2><p class="lead">${esc(reason)}</p>${d.understanding?`<p>${esc(d.understanding)}</p>`:''}${list||fallback}</section><div class="actions"><button class="btn btn-primary" data-action="concierge">別の相談をする</button><button class="btn btn-light" data-action="home">ホームへ戻る</button></div><div class="notice">制度・電話番号・受付時間は変更されることがあります。電話前に公式情報をご確認ください。</div>`,true);
