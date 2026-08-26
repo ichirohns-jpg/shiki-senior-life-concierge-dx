@@ -96,7 +96,11 @@
   const dataOf = (res) => res && res.data ? res.data : (res || {});
   const arrFrom = (obj, keys) => { for(const k of keys){ if(Array.isArray(obj?.[k])) return obj[k]; } return []; };
   const safeUrl = (url) => { const u=text(url); return /^(https?:|tel:|mailto:)/i.test(u) ? u : ''; };
-  const imgUrl = (url) => safeUrl(url);
+  function imgUrl(url){
+    const u=safeUrl(url);
+    const m=u.match(/drive\.google\.com\/.*?[?&]id=([A-Za-z0-9_-]+)/i);
+    return m ? `https://drive.google.com/thumbnail?id=${m[1]}&sz=w1200` : u;
+  }
 
   function jsonp(params={}){
     return new Promise((resolve,reject)=>{
