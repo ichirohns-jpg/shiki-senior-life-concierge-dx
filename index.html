@@ -1,0 +1,280 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#0b6fa4">
+  <title>志木市シニア生活相談DX</title>
+  <style>
+    :root{
+      --blue:#0b6fa4;--blue2:#eaf7ff;--navy:#123b53;--green:#138a62;
+      --yellow:#fff3c4;--red:#bd3f36;--line:#d7e5ec;--text:#19313d;
+      --white:#fff;--shadow:0 5px 18px rgba(20,70,95,.12)
+    }
+    *{box-sizing:border-box}
+    html{scroll-behavior:smooth}
+    body{margin:0;background:#f5fbfe;color:var(--text);font-family:-apple-system,BlinkMacSystemFont,"Hiragino Kaku Gothic ProN","Yu Gothic",Meiryo,sans-serif;font-size:18px;line-height:1.7}
+    button,input,select,textarea{font:inherit}
+    button{cursor:pointer}
+    a{color:#075d91;text-decoration:underline}
+    .app{min-height:100vh;padding-bottom:92px}
+    .topbar{position:sticky;top:0;z-index:20;background:rgba(255,255,255,.97);border-bottom:1px solid var(--line);padding:12px 16px;display:flex;align-items:center;gap:10px}
+    .topbar h1{font-size:19px;line-height:1.25;margin:0;flex:1;color:var(--navy)}
+    .topbar .mark{width:42px;height:42px;border-radius:14px;background:linear-gradient(135deg,#0b6fa4,#39a5d3);color:#fff;display:grid;place-items:center;font-weight:800;font-size:20px}
+    .wrap{max-width:900px;margin:0 auto;padding:18px 14px}
+    .hero{background:linear-gradient(135deg,#0b6fa4,#39a5d3);color:#fff;border-radius:24px;padding:24px 20px;margin-bottom:16px;box-shadow:var(--shadow)}
+    .hero h2{font-size:28px;line-height:1.35;margin:0 0 8px}
+    .hero p{margin:0;font-size:18px}
+    .notice{background:var(--yellow);border:1px solid #f0d875;border-radius:16px;padding:14px 16px;margin:14px 0;color:#5f4b09}
+    .section-title{font-size:24px;line-height:1.35;color:var(--navy);margin:24px 0 12px}
+    .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+    .card{background:#fff;border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow);overflow:hidden}
+    .card button,.card-link{display:block;width:100%;border:0;background:#fff;color:var(--text);text-align:left;padding:0;text-decoration:none}
+    .card-body{padding:14px 14px 16px}
+    .card h3{font-size:19px;line-height:1.35;margin:0 0 5px;color:var(--navy)}
+    .card p{font-size:16px;line-height:1.5;margin:0;color:#49616d}
+    .image-card img{display:block;width:100%;height:145px;object-fit:cover;background:#e9f5fa}
+    .image-placeholder{height:145px;background:linear-gradient(135deg,#dff4ff,#f9fdff);display:grid;place-items:center;color:#6a8794;font-size:16px;padding:12px;text-align:center}
+    .actions{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:18px 0}
+    .btn{min-height:54px;border:0;border-radius:15px;padding:12px 16px;font-weight:700;text-align:center;line-height:1.35;box-shadow:0 2px 7px rgba(0,0,0,.08)}
+    .btn-primary{background:var(--green);color:#fff}.btn-blue{background:var(--blue);color:#fff}.btn-light{background:#fff;color:var(--navy);border:2px solid #aacddd}.btn-warn{background:#fff0ef;color:#922e28;border:2px solid #e5aaa4}.btn-small{min-height:44px;font-size:16px;padding:8px 12px}
+    .back{display:inline-flex;align-items:center;gap:5px;background:none;border:0;color:#075d91;padding:5px 0;margin-bottom:8px;text-decoration:underline;font-weight:700}
+    .crumb{font-size:15px;color:#5d7682;margin:0 0 12px}
+    .question-box{background:#fff;border:3px solid #9dd3e8;border-radius:22px;padding:20px 16px;box-shadow:var(--shadow)}
+    .question-count{font-size:15px;color:#4f7180;font-weight:700}
+    .question-box h2{font-size:26px;line-height:1.4;margin:8px 0 18px;color:var(--navy)}
+    .choices{display:grid;gap:12px}
+    .choice{width:100%;border:2px solid #a7d4e4;background:#f8fdff;border-radius:16px;color:var(--navy);text-align:left;padding:15px 16px;font-weight:700;min-height:58px}
+    .choice:active,.choice:hover{background:#e4f6ff;border-color:var(--blue)}
+    .result{background:#fff;border:3px solid #8acaa9;border-radius:22px;padding:20px 16px;box-shadow:var(--shadow)}
+    .result h2{font-size:26px;line-height:1.4;color:#11613f;margin:0 0 10px}
+    .result .lead{font-size:20px;font-weight:700;margin:0 0 14px}
+    .contact{border-top:1px solid var(--line);padding:14px 0 0;margin-top:14px}
+    .contact h3{font-size:20px;margin:0 0 5px;color:var(--navy)}
+    .contact .phone{font-size:22px;font-weight:800;color:#075d91;word-break:break-word}
+    .contact .phone a{color:inherit}
+    .tag{display:inline-block;background:#e6f5ff;color:#075d91;padding:3px 9px;border-radius:999px;font-size:14px;font-weight:700;margin:2px 3px 2px 0}
+    .empty{background:#fff;border:1px dashed #a9c1cc;border-radius:16px;padding:18px;text-align:center;color:#5f7680}
+    .loading{text-align:center;padding:40px 10px;color:#4b6d7b}
+    .error{background:#fff0ef;color:#8b2f29;border:1px solid #e1aaa5;border-radius:16px;padding:15px;margin:14px 0}
+    textarea{width:100%;min-height:120px;border:2px solid #b5d2de;border-radius:14px;padding:12px;background:#fff;color:var(--text)}
+    .field-label{font-weight:700;color:var(--navy);display:block;margin:0 0 6px}
+    .article{background:#fff;border:1px solid var(--line);border-radius:18px;padding:16px;margin:12px 0;box-shadow:var(--shadow)}
+    .article h3{font-size:21px;line-height:1.4;margin:0 0 5px;color:var(--navy)}
+    .article .date{font-size:15px;color:#637b85;margin-bottom:8px}
+    .article img{display:block;width:100%;max-height:280px;object-fit:cover;border-radius:12px;margin:10px 0}
+    .article-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+    .bottom-nav{position:fixed;z-index:30;bottom:0;left:0;right:0;background:rgba(255,255,255,.98);border-top:1px solid var(--line);padding:8px 8px calc(8px + env(safe-area-inset-bottom));display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+    .bottom-nav button{border:0;background:none;color:#526d79;font-size:13px;line-height:1.2;padding:5px 2px;border-radius:12px}
+    .bottom-nav button.active{background:#e5f5fd;color:#075d91;font-weight:800}
+    .bottom-nav .icon{display:block;font-size:22px;line-height:1.1;margin-bottom:2px}
+    .small{font-size:15px;color:#637b85}
+    .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+    @media(min-width:680px){.grid{grid-template-columns:repeat(3,1fr)}.image-card img,.image-placeholder{height:175px}.wrap{padding:24px 20px}.actions{grid-template-columns:repeat(4,1fr)}}
+  </style>
+</head>
+<body>
+<div class="app" id="app"><div class="loading">読み込み中です…</div></div>
+<nav class="bottom-nav" aria-label="メインメニュー">
+  <button data-nav="home"><span class="icon">⌂</span>ホーム</button>
+  <button data-nav="concierge"><span class="icon">？</span>相談する</button>
+  <button data-nav="board"><span class="icon">▤</span>回覧板</button>
+  <button data-nav="themes"><span class="icon">☰</span>テーマ</button>
+</nav>
+<script>
+(() => {
+  'use strict';
+
+  const GAS_URL = 'https://script.google.com/macros/s/AKfycbxFOcaoi4O2S5gBNun2dfLtwk5djF1_nqSPYJY9VYAdLDyg6ZmV6O9KWNKSW8mdHlBG0g/exec';
+  const APP_NAME = '志木市シニア生活相談DX';
+  const state = { mode:'home', home:null, images:[], themes:[], questions:[], contacts:[], articles:[], stack:[], currentTheme:null, loading:false };
+  const $ = (s,root=document) => root.querySelector(s);
+  const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const text = v => String(v ?? '').trim();
+  const first = (...xs) => xs.find(v => v !== undefined && v !== null && String(v).trim() !== '');
+  const arr = (v) => Array.isArray(v) ? v : [];
+  const dataOf = (res) => res && res.data ? res.data : (res || {});
+  const arrFrom = (obj, keys) => { for(const k of keys){ if(Array.isArray(obj?.[k])) return obj[k]; } return []; };
+  const safeUrl = (url) => { const u=text(url); return /^(https?:|tel:|mailto:)/i.test(u) ? u : ''; };
+  const imgUrl = (url) => safeUrl(url);
+
+  function jsonp(params={}){
+    return new Promise((resolve,reject)=>{
+      const cb = '__shikiSenior_' + Date.now() + '_' + Math.random().toString(36).slice(2);
+      const script = document.createElement('script');
+      const q = new URLSearchParams({callback:cb, ...params});
+      let finished=false;
+      const clean=()=>{finished=true;clearTimeout(timer);script.remove();try{delete window[cb]}catch(e){window[cb]=undefined}};
+      const timer=setTimeout(()=>{if(finished)return;clean();reject(new Error('通信がタイムアウトしました'))},20000);
+      window[cb]=(payload)=>{if(finished)return;clean();if(payload && payload.ok===false) reject(new Error(payload.message||'データを取得できませんでした'));else resolve(payload)};
+      script.onerror=()=>{if(finished)return;clean();reject(new Error('通信に失敗しました'))};
+      script.src=GAS_URL+'?'+q.toString();
+      document.head.appendChild(script);
+    });
+  }
+  async function api(mode, params={}){ return jsonp({mode,...params}); }
+
+  function setMode(mode){ state.mode=mode; window.scrollTo({top:0,behavior:'instant'}); render(); }
+  function navActive(){ document.querySelectorAll('.bottom-nav button').forEach(b=>b.classList.toggle('active',b.dataset.nav===state.mode)); }
+  function shell(title, body, back=false){
+    return `<header class="topbar"><div class="mark">志</div><h1>${esc(title||APP_NAME)}</h1></header><main class="wrap">${back?'<button class="back" data-action="home">‹ ホームへ戻る</button>':''}${body}</main>`;
+  }
+  function errorBox(e){ return `<div class="error">${esc(e?.message||'データを読み込めませんでした')}<br><button class="btn btn-light btn-small" data-action="retry">もう一度読み込む</button></div>`; }
+
+  function normalizeImages(){
+    const raw = state.images.length ? state.images : arrFrom(dataOf(state.home),['images']);
+    state.images = raw.map((x,i)=>({number:first(x.number,x.no,i+1),fileName:first(x.fileName,x.name,`画像${i+1}`),imageUrl:imgUrl(first(x.imageUrl,x.url,x.image)),status:first(x.status,'公開')}));
+  }
+  function normalizeThemes(){
+    const raw = state.themes.length ? state.themes : arrFrom(dataOf(state.home),['themes']);
+    state.themes = raw.map((x,i)=>({themeId:first(x.themeId,x.id,`T${String(i+1).padStart(3,'0')}`),name:first(x.name,x.title,'相談テーマ'),description:first(x.description,x.detail,''),audience:first(x.audience,''),status:first(x.status,'公開'),startQuestionId:first(x.startQuestionId,x.startId,'')}));
+  }
+  function normalizeQuestions(raw){
+    state.questions = arr(raw).map((x,i)=>({
+      questionId:first(x.questionId,x.id,x.qid,`Q${String(i+1).padStart(3,'0')}`),
+      themeId:first(x.themeId,x.theme,''),
+      text:first(x.question,x.text,x.title,'次の項目を選んでください'),
+      help:first(x.help,x.description,''),
+      options:arrFrom(x,['options','choices','answers']).map((o,j)=>({
+        id:first(o.optionId,o.id,o.value,`${i+1}-${j+1}`), label:first(o.label,o.name,o.text,o.value,`選択肢${j+1}`),
+        nextQuestionId:first(o.nextQuestionId,o.nextId,o.questionId,''), resultId:first(o.resultId,o.result,''), contactId:first(o.contactId,''),
+        inputText:first(o.inputText,o.memo,'')
+      }))
+    }));
+  }
+  function normalizeContacts(raw){
+    state.contacts=arr(raw).map((x,i)=>({contactId:first(x.contactId,x.id,`C${String(i+1).padStart(3,'0')}`),themeId:first(x.themeId,''),priority:first(x.priority,i+1),name:first(x.name,x.title,'相談窓口'),role:first(x.role,x.description,''),phone:first(x.phone,x.tel,''),hours:first(x.hours,''),address:first(x.address,''),officialUrl:safeUrl(first(x.officialUrl,x.url)),note:first(x.note,'')}));
+  }
+  function normalizeArticles(raw){
+    state.articles=arr(raw).map(x=>({date:first(x.date,x.publishedAt,x.createdAt,''),title:first(x.title,x.name,'地域のお知らせ'),body:first(x.body,x.detail,x.description,''),image:safeUrl(first(x.imageUrl,x.image,x.thumbnail)),applyUrl:safeUrl(first(x.applyUrl,x.applicationUrl)),officialUrl:safeUrl(first(x.officialUrl,x.cityUrl,x.url))}));
+  }
+
+  async function loadHome(){
+    state.loading=true;render();
+    try{
+      const res=await api('home');state.home=res;const d=dataOf(res);
+      state.images=arrFrom(d,['images']);state.themes=arrFrom(d,['themes']);state.contacts=arrFrom(d,['contacts']);state.articles=arrFrom(d,['articles','publicArticles']);
+      normalizeImages();normalizeThemes();normalizeContacts(state.contacts);normalizeArticles(state.articles);state.mode='home';
+    }catch(e){state.home={error:e};}
+    state.loading=false;render();
+  }
+  async function loadImages(){try{const r=await api('images');state.images=arrFrom(dataOf(r),['images']);normalizeImages()}catch(e){if(!state.images.length)state.home={error:e}}}
+  async function loadThemes(){try{const r=await api('themes');state.themes=arrFrom(dataOf(r),['themes','items']);normalizeThemes()}catch(e){if(!state.themes.length)state.home={error:e}}}
+  async function loadQuestions(){try{const r=await api('questions');const d=dataOf(r);normalizeQuestions(arrFrom(d,['questions','items']));normalizeContacts(arrFrom(d,['contacts']))}catch(e){console.warn(e)}}
+  async function loadBoard(){try{const r=await api('board');normalizeArticles(arrFrom(dataOf(r),['articles','items','board']))}catch(e){if(!state.articles.length)state.home={error:e}}}
+
+  function imageCard(im){
+    const image=im.imageUrl ? `<img src="${esc(im.imageUrl)}" alt="${esc(im.fileName)}" loading="lazy">` : `<div class="image-placeholder">${esc(im.fileName)}</div>`;
+    return `<article class="card image-card"><button data-action="image" data-number="${esc(im.number)}">${image}<div class="card-body"><h3>${esc(im.fileName.replace(/\.png$/i,''))}</h3><p>このことで困っている</p></div></button></article>`;
+  }
+  function homeView(){
+    if(state.loading)return shell(APP_NAME,'<div class="loading">読み込み中です…</div>');
+    if(state.home?.error)return shell(APP_NAME,errorBox(state.home.error));
+    normalizeImages();normalizeThemes();
+    const d=dataOf(state.home),desc=first(d.description,'高齢者と家族が、困りごとを一つずつ整理して、相談先までたどり着くための案内です。');
+    const cards=state.images.length?state.images.map(imageCard).join(''):'<div class="empty">画像一覧を読み込めませんでした。</div>';
+    return shell(APP_NAME,`<section class="hero"><h2>困ったことを<br>一緒に整理します</h2><p>${esc(desc)}</p></section>
+      <div class="actions"><button class="btn btn-primary" data-action="concierge">相談を始める</button><button class="btn btn-blue" data-action="board">回覧板を見る</button></div>
+      <div class="notice">緊急の場合は、この案内だけで判断せず、119番・110番・近くの人へ連絡してください。</div>
+      <h2 class="section-title">困りごとの入口</h2><p class="small">近いものをタップしてください。次の質問で少しずつ絞り込みます。</p><section class="grid">${cards}</section>`);
+  }
+
+  function themesView(){
+    normalizeThemes();
+    const body=state.themes.length?state.themes.map(t=>`<article class="card"><button data-action="theme" data-theme="${esc(t.themeId)}"><div class="card-body"><h3>${esc(t.name)}</h3><p>${esc(t.description)}</p>${t.audience?`<p class="small">対象：${esc(t.audience)}</p>`:''}</div></button></article>`).join(''):'<div class="empty">テーマを読み込んでいます。</div>';
+    return shell('相談テーマ',`<p class="crumb">困りごとの近いテーマを選んでください。</p><section class="grid">${body}</section>`,true);
+  }
+
+  function findTheme(id){return state.themes.find(t=>String(t.themeId)===String(id))||null}
+  function findQuestion(id){return state.questions.find(q=>String(q.questionId)===String(id))||null}
+  function startQuestion(theme){
+    state.currentTheme=theme;state.stack=[];
+    const q=findQuestion(theme.startQuestionId)||state.questions.find(x=>!x.themeId||String(x.themeId)===String(theme.themeId));
+    if(q){state.stack=[q.questionId];state.mode='question';render();return}
+    state.mode='free';render();
+  }
+  function conciergeView(){
+    normalizeThemes();
+    const body=state.themes.length?state.themes.map(t=>`<article class="card"><button data-action="theme" data-theme="${esc(t.themeId)}"><div class="card-body"><h3>${esc(t.name)}</h3><p>${esc(t.description)}</p></div></button></article>`).join(''):'<div class="empty">相談テーマを読み込んでいます。</div>';
+    return shell('相談を始める',`<section class="hero"><h2>どんなことで<br>困っていますか？</h2><p>一番近いものを選ぶと、質問を重ねて相談先まで案内します。</p></section><section class="grid">${body}</section><div class="notice">うまく選べないときは「文章で相談する」を使えます。</div><button class="btn btn-light" data-action="free">文章で相談する</button>`,true);
+  }
+  function questionView(){
+    const q=findQuestion(state.stack[state.stack.length-1]);
+    if(!q)return freeView();
+    const options=q.options.length?q.options.map(o=>`<button class="choice" data-action="answer" data-option="${esc(o.id)}">${esc(o.label)}</button>`).join(''):'<div class="empty">この質問の選択肢を準備中です。</div>';
+    return shell('相談を整理しています',`<p class="crumb">${esc(state.currentTheme?.name||'相談')}　質問 ${state.stack.length}</p><section class="question-box"><div class="question-count">一つずつ選んでください</div><h2>${esc(q.text)}</h2>${q.help?`<p class="small">${esc(q.help)}</p>`:''}<div class="choices">${options}</div></section><div class="actions"><button class="btn btn-light" data-action="question-back">前の質問</button><button class="btn btn-light" data-action="free">文章で相談</button></div>`,true);
+  }
+  function freeView(){
+    return shell('文章で相談する',`<p>困っていることを、短い文章で入力してください。</p><label class="field-label" for="freeText">相談内容</label><textarea id="freeText" placeholder="例：施設に入るので、家をどうしたらよいか分からない"></textarea><div class="actions"><button class="btn btn-primary" data-action="send-free">相談先を探す</button><button class="btn btn-light" data-action="concierge">テーマから選ぶ</button></div><p class="small">送信内容は相談先を探すために使います。緊急情報は入力せず、直接119番などへ連絡してください。</p>`,true);
+  }
+  function resultView(result){
+    const d=dataOf(result);const matched=first(d.matchedTheme?.name,d.theme?.name,d.themeName,state.currentTheme?.name,'相談結果');
+    const reason=first(d.reason,d.explanation,d.understanding,'選択内容に近い相談先を案内します。');
+    const contacts=arrFrom(d,['contacts','results']).length?arrFrom(d,['contacts','results']):state.contacts;
+    const list=contacts.map(c=>{const cc={...c,name:first(c.name,c.title,'相談窓口'),role:first(c.role,c.description,''),phone:first(c.phone,c.tel,''),hours:first(c.hours,''),address:first(c.address,''),officialUrl:safeUrl(first(c.officialUrl,c.url))};return `<div class="contact"><h3>${esc(cc.name)}</h3>${cc.role?`<p>${esc(cc.role)}</p>`:''}${cc.phone?`<div class="phone"><a href="${esc(/^\d/.test(cc.phone)?'tel:'+cc.phone.replace(/[^\d+]/g,''):safeUrl(cc.phone))}">${esc(cc.phone)}</a></div>`:''}${cc.hours?`<p class="small">受付：${esc(cc.hours)}</p>`:''}${cc.address?`<p class="small">場所：${esc(cc.address)}</p>`:''}${cc.officialUrl?`<p><a href="${esc(cc.officialUrl)}" target="_blank" rel="noopener">公式情報を確認する</a></p>`:''}${c.note?`<p class="small">${esc(c.note)}</p>`:''}</div>`}).join('');
+    const fallback=contacts.length?'':`<div class="contact"><h3>相談窓口を確認してください</h3><p>志木市役所または地域包括支援センターへ、困りごとの内容を伝えてください。</p><p><a href="https://www.city.shiki.lg.jp/" target="_blank" rel="noopener">志木市公式サイトを開く</a></p></div>`;
+    return shell('相談先の案内',`<section class="result"><h2>${esc(matched)}</h2><p class="lead">${esc(reason)}</p>${d.understanding?`<p>${esc(d.understanding)}</p>`:''}${list||fallback}</section><div class="actions"><button class="btn btn-primary" data-action="concierge">別の相談をする</button><button class="btn btn-light" data-action="home">ホームへ戻る</button></div><div class="notice">制度・電話番号・受付時間は変更されることがあります。電話前に公式情報をご確認ください。</div>`,true);
+  }
+
+  function boardView(){
+    const list=state.articles.length?state.articles.map(a=>`<article class="article">${a.date?`<div class="date">${esc(a.date)}</div>`:''}<h3>${esc(a.title)}</h3>${a.image?`<img src="${esc(a.image)}" alt="" loading="lazy">`:''}${a.body?`<p>${esc(a.body).replace(/\n/g,'<br>')}</p>`:''}<div class="article-actions">${a.applyUrl?`<a class="btn btn-blue btn-small" href="${esc(a.applyUrl)}" target="_blank" rel="noopener">申込・詳細</a>`:''}${a.officialUrl?`<a class="btn btn-light btn-small" href="${esc(a.officialUrl)}" target="_blank" rel="noopener">公式ページ</a>`:''}</div></article>`).join(''):'<div class="empty">現在公開されている回覧板情報はありません。</div>';
+    return shell('回覧板・地域情報',`<p class="crumb">高齢者や家族に役立つ地域のお知らせです。</p>${list}`,true);
+  }
+
+  function render(){
+    navActive();
+    const app=$('#app');
+    if(state.mode==='home')app.innerHTML=homeView();
+    else if(state.mode==='themes')app.innerHTML=themesView();
+    else if(state.mode==='concierge')app.innerHTML=conciergeView();
+    else if(state.mode==='question')app.innerHTML=questionView();
+    else if(state.mode==='free')app.innerHTML=freeView();
+    else if(state.mode==='result')app.innerHTML=resultView(state.lastResult||{});
+    else if(state.mode==='board')app.innerHTML=boardView();
+    else app.innerHTML=homeView();
+  }
+
+  async function begin(){
+    if(!state.home)await loadHome();
+    if(!state.themes.length)await loadThemes();
+    if(!state.questions.length)await loadQuestions();
+    render();
+  }
+  async function answer(optionId){
+    const q=findQuestion(state.stack[state.stack.length-1]);if(!q)return;
+    const o=q.options.find(x=>String(x.id)===String(optionId));if(!o)return;
+    if(o.resultId){await getServerResult({resultId:o.resultId,themeId:state.currentTheme?.themeId});return}
+    if(o.contactId){state.lastResult={data:{matchedTheme:{name:state.currentTheme?.name},reason:'選択内容に合う相談窓口です。',contacts:state.contacts.filter(c=>String(c.contactId)===String(o.contactId))}};state.mode='result';render();return}
+    if(o.nextQuestionId&&findQuestion(o.nextQuestionId)){state.stack.push(o.nextQuestionId);render();return}
+    await getServerResult({themeId:state.currentTheme?.themeId,questionId:q.questionId,optionId:o.id,inputText:o.inputText});
+  }
+  async function getServerResult(params){
+    try{const r=await api('concierge',params);state.lastResult=r;state.mode='result';render()}
+    catch(e){state.lastResult={data:{matchedTheme:{name:state.currentTheme?.name},reason:'選択内容を整理しました。下の相談先を確認してください。',contacts:state.contacts}};state.mode='result';render()}
+  }
+  async function sendFree(){
+    const input=text($('#freeText')?.value);if(!input){alert('相談内容を入力してください。');return}
+    try{const r=await api('concierge',{inputText:input,text:input,q:input});state.lastResult=r;state.mode='result';render()}
+    catch(e){state.lastResult={data:{matchedTheme:{name:'入力内容の相談'},reason:'入力内容を確認し、近い相談先を案内します。',contacts:state.contacts}};state.mode='result';render()}
+  }
+
+  document.addEventListener('click',async e=>{
+    const el=e.target.closest('[data-action]');if(!el)return;const action=el.dataset.action;
+    if(action==='home'){state.mode='home';render();return}
+    if(action==='retry'){loadHome();return}
+    if(action==='concierge'){if(!state.themes.length)await loadThemes();if(!state.questions.length)await loadQuestions();state.mode='concierge';render();return}
+    if(action==='themes'){if(!state.themes.length)await loadThemes();state.mode='themes';render();return}
+    if(action==='board'){if(!state.articles.length)await loadBoard();state.mode='board';render();return}
+    if(action==='free'){state.mode='free';render();return}
+    if(action==='theme'){const t=findTheme(el.dataset.theme);if(t){if(!state.questions.length)await loadQuestions();startQuestion(t)}return}
+    if(action==='answer'){await answer(el.dataset.option);return}
+    if(action==='question-back'){if(state.stack.length>1){state.stack.pop();render()}else{state.mode='concierge';render()}return}
+    if(action==='send-free'){await sendFree();return}
+    if(action==='image'){state.mode='concierge';render();return}
+  });
+  document.querySelectorAll('.bottom-nav button').forEach(b=>b.addEventListener('click',()=>setMode(b.dataset.nav)));
+  begin();
+})();
+</script>
+</body>
+</html>
