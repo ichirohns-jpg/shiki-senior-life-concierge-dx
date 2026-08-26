@@ -87,7 +87,7 @@
 
   const GAS_URL = 'https://script.google.com/macros/s/AKfycbxFOcaoi4O2S5gBNun2dfLtwk5djF1_nqSPYJY9VYAdLDyg6ZmV6O9KWNKSW8mdHlBG0g/exec';
   const APP_NAME = '志木市シニア生活相談DX';
-  const state = { mode:'home', home:null, images:[], themes:[], questions:[], contacts:[], articles:[], stack:[], currentTheme:null, loading:false };
+  const state = { mode:'home', home:null, images:[], themes:[], questions:[], contacts:[], articles:[], stack:[], currentTheme:null, currentQuestion:null, loading:false, loadingQuestion:false };
   const $ = (s,root=document) => root.querySelector(s);
   const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const text = v => String(v ?? '').trim();
@@ -130,7 +130,7 @@
     state.themes = raw.map((x,i)=>({themeId:first(x.themeId,x.id,`T${String(i+1).padStart(3,'0')}`),name:first(x.name,x.title,'相談テーマ'),description:first(x.description,x.detail,''),audience:first(x.audience,''),status:first(x.status,'公開'),startQuestionId:first(x.startQuestionId,x.startId,'')}));
   }
   function normalizeQuestions(raw){
-    state.questions = arr(raw).map((x,i)=>({
+    const normalized = arr(raw).map((x,i)=>({
       questionId:first(x.questionId,x.id,x.qid,`Q${String(i+1).padStart(3,'0')}`),
       themeId:first(x.themeId,x.theme,''),
       text:first(x.question,x.text,x.title,'次の項目を選んでください'),
@@ -141,6 +141,21 @@
         inputText:first(o.inputText,o.memo,'')
       }))
     }));
+    state.questions = normalized;
+    return normalized[0] || null;
+  }
+  function normalizeQuestion(x){ return normalizeQuestions(x ? [x] : []); }
+  function applyQuestionResponse(res){
+    const d=dataOf(res);
+    if(d.matchedTheme){
+      state.currentTheme={...state.currentTheme,...d.matchedTheme,themeId:first(d.matchedTheme.themeId,state.currentTheme?.themeId),name:first(d.matchedTheme.name,state.currentTheme?.name)};
+    }
+    if(d.question){
+      state.currentQuestion=normalizeQuestion(d.question);
+      if(state.currentQuestion && !state.stack.includes(state.currentQuestion.questionId)) state.stack.push(state.currentQuestion.questionId);
+      return true;
+    }
+    return false;
   }
   function normalizeContacts(raw){
     state.contacts=arr(raw).map((x,i)=>({contactId:first(x.contactId,x.id,`C${String(i+1).padStart(3,'0')}`),themeId:first(x.themeId,''),priority:first(x.priority,i+1),name:first(x.name,x.title,'相談窓口'),role:first(x.role,x.description,''),phone:first(x.phone,x.tel,''),hours:first(x.hours,''),address:first(x.address,''),officialUrl:safeUrl(first(x.officialUrl,x.url)),note:first(x.note,'')}));
@@ -160,7 +175,7 @@
   }
   async function loadImages(){try{const r=await api('images');state.images=arrFrom(dataOf(r),['images']);normalizeImages()}catch(e){if(!state.images.length)state.home={error:e}}}
   async function loadThemes(){try{const r=await api('themes');state.themes=arrFrom(dataOf(r),['themes','items']);normalizeThemes()}catch(e){if(!state.themes.length)state.home={error:e}}}
-  async function loadQuestions(){try{const r=await api('questions');const d=dataOf(r);normalizeQuestions(arrFrom(d,['questions','items']));normalizeContacts(arrFrom(d,['contacts']))}catch(e){console.warn(e)}}
+  async function loadQuestions(){try{const r=await api('questions');const d=dataOf(r);if(d.question)state.currentQuestion=normalizeQuestion(d.question);normalizeQuestions(arrFrom(d,['questions','items']));normalizeContacts(arrFrom(d,['contacts']))}catch(e){console.warn(e)}}
   async function loadBoard(){try{const r=await api('board');normalizeArticles(arrFrom(dataOf(r),['articles','items','board']))}catch(e){if(!state.articles.length)state.home={error:e}}}
 
   function imageCard(im){
@@ -187,11 +202,14 @@
 
   function findTheme(id){return state.themes.find(t=>String(t.themeId)===String(id))||null}
   function findQuestion(id){return state.questions.find(q=>String(q.questionId)===String(id))||null}
-  function startQuestion(theme){
-    state.currentTheme=theme;state.stack=[];
-    const q=findQuestion(theme.startQuestionId)||state.questions.find(x=>!x.themeId||String(x.themeId)===String(theme.themeId));
-    if(q){state.stack=[q.questionId];state.mode='question';render();return}
-    state.mode='free';render();
+  async function startQuestion(theme){
+    state.currentTheme=theme;state.stack=[];state.currentQuestion=null;state.loadingQuestion=true;state.mode='question';render();
+    try{
+      const r=await api('concierge',{themeId:theme.themeId});
+      applyQuestionResponse(r);
+      if(!state.currentQuestion){state.mode='free'}
+    }catch(e){state.mode='free'}
+    state.loadingQuestion=false;render();
   }
   function conciergeView(){
     normalizeThemes();
@@ -199,9 +217,10 @@
     return shell('相談を始める',`<section class="hero"><h2>どんなことで<br>困っていますか？</h2><p>一番近いものを選ぶと、質問を重ねて相談先まで案内します。</p></section><section class="grid">${body}</section><div class="notice">うまく選べないときは「文章で相談する」を使えます。</div><button class="btn btn-light" data-action="free">文章で相談する</button>`,true);
   }
   function questionView(){
-    const q=findQuestion(state.stack[state.stack.length-1]);
+    if(state.loadingQuestion)return shell('相談を整理しています','<div class="loading">最初の質問を読み込んでいます…</div>',true);
+    const q=state.currentQuestion||findQuestion(state.stack[state.stack.length-1]);
     if(!q)return freeView();
-    const options=q.options.length?q.options.map(o=>`<button class="choice" data-action="answer" data-option="${esc(o.id)}">${esc(o.label)}</button>`).join(''):'<div class="empty">この質問の選択肢を準備中です。</div>';
+    const options=q.options.length?q.options.map(o=>`<button class="choice" data-action="answer" data-option="${esc(first(o.value,o.id,o.label))}">${esc(o.label)}</button>`).join(''):'<div class="empty">この質問の選択肢を準備中です。</div>';
     return shell('相談を整理しています',`<p class="crumb">${esc(state.currentTheme?.name||'相談')}　質問 ${state.stack.length}</p><section class="question-box"><div class="question-count">一つずつ選んでください</div><h2>${esc(q.text)}</h2>${q.help?`<p class="small">${esc(q.help)}</p>`:''}<div class="choices">${options}</div></section><div class="actions"><button class="btn btn-light" data-action="question-back">前の質問</button><button class="btn btn-light" data-action="free">文章で相談</button></div>`,true);
   }
   function freeView(){
@@ -237,16 +256,16 @@
   async function begin(){
     if(!state.home)await loadHome();
     if(!state.themes.length)await loadThemes();
-    if(!state.questions.length)await loadQuestions();
     render();
   }
-  async function answer(optionId){
-    const q=findQuestion(state.stack[state.stack.length-1]);if(!q)return;
-    const o=q.options.find(x=>String(x.id)===String(optionId));if(!o)return;
-    if(o.resultId){await getServerResult({resultId:o.resultId,themeId:state.currentTheme?.themeId});return}
-    if(o.contactId){state.lastResult={data:{matchedTheme:{name:state.currentTheme?.name},reason:'選択内容に合う相談窓口です。',contacts:state.contacts.filter(c=>String(c.contactId)===String(o.contactId))}};state.mode='result';render();return}
-    if(o.nextQuestionId&&findQuestion(o.nextQuestionId)){state.stack.push(o.nextQuestionId);render();return}
-    await getServerResult({themeId:state.currentTheme?.themeId,questionId:q.questionId,optionId:o.id,inputText:o.inputText});
+  async function answer(optionValue){
+    const q=state.currentQuestion||findQuestion(state.stack[state.stack.length-1]);if(!q)return;
+    const o=q.options.find(x=>String(first(x.value,x.id,x.label))===String(optionValue))||q.options.find(x=>String(x.id)===String(optionValue));if(!o)return;
+    try{
+      const r=await api('concierge',{themeId:state.currentTheme?.themeId,questionId:q.questionId,answer:first(o.value,o.label,o.id)});
+      if(applyQuestionResponse(r)){state.mode='question';render();return}
+      state.lastResult=r;state.mode='result';render();
+    }catch(e){state.lastResult={data:{matchedTheme:{name:state.currentTheme?.name},reason:'通信に失敗しました。もう一度お試しください。',contacts:state.contacts}};state.mode='result';render()}
   }
   async function getServerResult(params){
     try{const r=await api('concierge',params);state.lastResult=r;state.mode='result';render()}
@@ -262,11 +281,11 @@
     const el=e.target.closest('[data-action]');if(!el)return;const action=el.dataset.action;
     if(action==='home'){state.mode='home';render();return}
     if(action==='retry'){loadHome();return}
-    if(action==='concierge'){if(!state.themes.length)await loadThemes();if(!state.questions.length)await loadQuestions();state.mode='concierge';render();return}
+    if(action==='concierge'){if(!state.themes.length)await loadThemes();state.mode='concierge';render();return}
     if(action==='themes'){if(!state.themes.length)await loadThemes();state.mode='themes';render();return}
     if(action==='board'){if(!state.articles.length)await loadBoard();state.mode='board';render();return}
     if(action==='free'){state.mode='free';render();return}
-    if(action==='theme'){const t=findTheme(el.dataset.theme);if(t){if(!state.questions.length)await loadQuestions();startQuestion(t)}return}
+    if(action==='theme'){const t=findTheme(el.dataset.theme);if(t)await startQuestion(t);return}
     if(action==='answer'){await answer(el.dataset.option);return}
     if(action==='question-back'){if(state.stack.length>1){state.stack.pop();render()}else{state.mode='concierge';render()}return}
     if(action==='send-free'){await sendFree();return}
