@@ -109,7 +109,7 @@
       const q = new URLSearchParams({callback:cb, ...params});
       let finished=false;
       const clean=()=>{finished=true;clearTimeout(timer);script.remove();try{delete window[cb]}catch(e){window[cb]=undefined}};
-      const timer=setTimeout(()=>{if(finished)return;clean();reject(new Error('通信がタイムアウトしました'))},20000);
+      const timer=setTimeout(()=>{if(finished)return;clean();reject(new Error('通信がタイムアウトしました'))},60000);
       window[cb]=(payload)=>{if(finished)return;clean();if(payload && payload.ok===false) reject(new Error(payload.message||'データを取得できませんでした'));else resolve(payload)};
       script.onerror=()=>{if(finished)return;clean();reject(new Error('通信に失敗しました'))};
       script.src=GAS_URL+'?'+q.toString();
