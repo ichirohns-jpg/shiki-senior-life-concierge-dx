@@ -91,6 +91,7 @@
 
   const GAS_URL = 'https://script.google.com/macros/s/AKfycbwjFKd7mqWORk-lhQaj1qscyLiGoSCA_E9oyn61ZP_5s1du177ikPsVEumTIEjPthlEPg/exec';
   const APP_NAME = '志木市シニア生活相談DX';
+  const BOARD_URL = 'https://ichirohns-jpg.github.io/ShikiConcierge-18/app.html';
   const state = { mode:'home', home:null, images:[], themes:[], questions:[], contacts:[], articles:[], stack:[], currentTheme:null, currentQuestion:null, freeText:'', loading:false, loadingQuestion:false };
   const $ = (s,root=document) => root.querySelector(s);
   const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -339,8 +340,8 @@
   }
 
   function boardView(){
-    const list=state.articles.length?state.articles.map(a=>`<article class="article">${a.date?`<div class="date">${esc(a.date)}</div>`:''}<h3>${esc(a.title)}</h3>${a.image?`<img src="${esc(a.image)}" alt="" loading="lazy">`:''}${a.body?`<p>${esc(a.body).replace(/\n/g,'<br>')}</p>`:''}<div class="article-actions">${a.applyUrl?`<a class="btn btn-blue btn-small" href="${esc(a.applyUrl)}" target="_blank" rel="noopener">申込・詳細</a>`:''}${a.officialUrl?`<a class="btn btn-light btn-small" href="${esc(a.officialUrl)}" target="_blank" rel="noopener">公式ページ</a>`:''}</div></article>`).join(''):'<div class="empty">現在公開されている回覧板情報はありません。</div>';
-    return shell('回覧板・地域情報',`<p class="crumb">高齢者や家族に役立つ地域のお知らせです。</p>${list}`,true);
+    const list=state.articles.length?state.articles.map(a=>`<article class="article">${a.date?`<div class="date">${esc(a.date)}</div>`:''}<h3>${esc(a.title)}</h3>${a.image?`<img src="${esc(a.image)}" alt="" loading="lazy">`:''}${a.body?`<p>${esc(a.body).replace(/\n/g,'<br>')}</p>`:''}<div class="article-actions">${a.applyUrl?`<a class="btn btn-blue btn-small" href="${esc(a.applyUrl)}">申込・詳細</a>`:''}${a.officialUrl?`<a class="btn btn-light btn-small" href="${esc(a.officialUrl)}">公式ページ</a>`:''}</div></article>`).join(''):'<div class="empty">現在公開されている回覧板情報はありません。</div>';
+    return shell('回覧板・地域情報',`<p class="crumb">高齢者や家族に役立つ地域のお知らせです。</p><div class="article-actions"><a class="btn btn-blue" href="${BOARD_URL}">回覧板を開く</a></div>${list}`,true);
   }
 
   function render(){
