@@ -96,6 +96,9 @@
   const dataOf = (res) => res && res.data ? res.data : (res || {});
   const arrFrom = (obj, keys) => { for(const k of keys){ if(Array.isArray(obj?.[k])) return obj[k]; } return []; };
   const safeUrl = (url) => { const u=text(url); return /^(https?:|tel:|mailto:)/i.test(u) ? u : ''; };
+  // スプレッドシートの仮入力を市民向け画面に表示しない
+  const isPlaceholder = (value) => /^(要登録|未登録|未確認|要確認|登録予定|準備中)$/u.test(text(value));
+  const cleanContactValue = (value) => isPlaceholder(value) ? '' : text(value);
   function imgUrl(url){
     const u=safeUrl(url);
     const m=u.match(/drive\.google\.com\/.*?[?&]id=([A-Za-z0-9_-]+)/i);
@@ -162,7 +165,7 @@
     return false;
   }
   function normalizeContacts(raw){
-    state.contacts=arr(raw).map((x,i)=>({contactId:first(x.contactId,x.id,`C${String(i+1).padStart(3,'0')}`),themeId:first(x.themeId,''),priority:first(x.priority,i+1),name:first(x.name,x.title,'相談窓口'),role:first(x.role,x.description,''),phone:first(x.phone,x.tel,''),hours:first(x.hours,''),address:first(x.address,''),officialUrl:safeUrl(first(x.officialUrl,x.url)),note:first(x.note,'')}));
+    state.contacts=arr(raw).map((x,i)=>({contactId:first(x.contactId,x.id,`C${String(i+1).padStart(3,'0')}`),themeId:first(x.themeId,''),priority:first(x.priority,i+1),name:first(x.name,x.title,'相談窓口'),role:first(x.role,x.description,''),phone:cleanContactValue(first(x.phone,x.tel,'')),hours:cleanContactValue(first(x.hours,'')),address:cleanContactValue(first(x.address,'')),officialUrl:safeUrl(first(x.officialUrl,x.url)),note:cleanContactValue(first(x.note,''))}));
   }
   function normalizeArticles(raw){
     state.articles=arr(raw).map(x=>({date:first(x.date,x.publishedAt,x.createdAt,''),title:first(x.title,x.name,'地域のお知らせ'),body:first(x.body,x.detail,x.description,''),image:safeUrl(first(x.imageUrl,x.image,x.thumbnail)),applyUrl:safeUrl(first(x.applyUrl,x.applicationUrl)),officialUrl:safeUrl(first(x.officialUrl,x.cityUrl,x.url))}));
@@ -234,7 +237,7 @@
     const d=dataOf(result);const matched=first(d.matchedTheme?.name,d.theme?.name,d.themeName,state.currentTheme?.name,'相談結果');
     const reason=first(d.reason,d.explanation,d.understanding,'選択内容に近い相談先を案内します。');
     const contacts=arrFrom(d,['contacts','results']).length?arrFrom(d,['contacts','results']):state.contacts;
-    const list=contacts.map(c=>{const cc={...c,name:first(c.name,c.title,'相談窓口'),role:first(c.role,c.description,''),phone:first(c.phone,c.tel,''),hours:first(c.hours,''),address:first(c.address,''),officialUrl:safeUrl(first(c.officialUrl,c.url))};return `<div class="contact"><h3>${esc(cc.name)}</h3>${cc.role?`<p>${esc(cc.role)}</p>`:''}${cc.phone?`<div class="phone"><a href="${esc(/^\d/.test(cc.phone)?'tel:'+cc.phone.replace(/[^\d+]/g,''):safeUrl(cc.phone))}">${esc(cc.phone)}</a></div>`:''}${cc.hours?`<p class="small">受付：${esc(cc.hours)}</p>`:''}${cc.address?`<p class="small">場所：${esc(cc.address)}</p>`:''}${cc.officialUrl?`<p><a href="${esc(cc.officialUrl)}" target="_blank" rel="noopener">公式情報を確認する</a></p>`:''}${c.note?`<p class="small">${esc(c.note)}</p>`:''}</div>`}).join('');
+    const list=contacts.map(c=>{const cc={...c,name:first(c.name,c.title,'相談窓口'),role:first(c.role,c.description,''),phone:cleanContactValue(first(c.phone,c.tel,'')),hours:cleanContactValue(first(c.hours,'')),address:cleanContactValue(first(c.address,'')),officialUrl:safeUrl(first(c.officialUrl,c.url)),note:cleanContactValue(first(c.note,''))};return `<div class="contact"><h3>${esc(cc.name)}</h3>${cc.role?`<p>${esc(cc.role)}</p>`:''}${cc.phone?`<div class="phone"><a href="${esc(/^\d/.test(cc.phone)?'tel:'+cc.phone.replace(/[^\d+]/g,''):safeUrl(cc.phone))}">${esc(cc.phone)}</a></div>`:''}${cc.hours?`<p class="small">受付：${esc(cc.hours)}</p>`:''}${cc.address?`<p class="small">場所：${esc(cc.address)}</p>`:''}${cc.officialUrl?`<p><a href="${esc(cc.officialUrl)}" target="_blank" rel="noopener">公式情報を確認する</a></p>`:''}${cc.note?`<p class="small">${esc(cc.note)}</p>`:''}</div>`}).join('');
     const fallback=contacts.length?'':`<div class="contact"><h3>相談窓口を確認してください</h3><p>志木市役所または地域包括支援センターへ、困りごとの内容を伝えてください。</p><p><a href="https://www.city.shiki.lg.jp/" target="_blank" rel="noopener">志木市公式サイトを開く</a></p></div>`;
     return shell('相談先の案内',`<section class="result"><h2>${esc(matched)}</h2><p class="lead">${esc(reason)}</p>${d.understanding?`<p>${esc(d.understanding)}</p>`:''}${list||fallback}</section><div class="actions"><button class="btn btn-primary" data-action="concierge">別の相談をする</button><button class="btn btn-light" data-action="home">ホームへ戻る</button></div><div class="notice">制度・電話番号・受付時間は変更されることがあります。電話前に公式情報をご確認ください。</div>`,true);
   }
