@@ -154,6 +154,8 @@
   function normalizeQuestion(x){ return normalizeQuestions(x ? [x] : []); }
   function applyQuestionResponse(res){
     const d=dataOf(res);
+    // 最終結果を質問として扱わない。これが途中で止まる主原因になる。
+    if(d.type==='result' || d.resultId || d.emergencyNotice) return false;
     if(d.matchedTheme){
       state.currentTheme={...state.currentTheme,...d.matchedTheme,themeId:first(d.matchedTheme.themeId,state.currentTheme?.themeId),name:first(d.matchedTheme.name,state.currentTheme?.name)};
     }
@@ -235,7 +237,7 @@
   }
   function resultView(result){
     const d=dataOf(result);const matched=first(d.matchedTheme?.name,d.theme?.name,d.themeName,state.currentTheme?.name,'相談結果');
-    const reason=first(d.reason,d.explanation,d.understanding,'選択内容に近い相談先を案内します。');
+    const reason=first(d.reason,d.message,d.explanation,d.understanding,'選択内容に近い相談先を案内します。');
     const contacts=arrFrom(d,['contacts','results']).length?arrFrom(d,['contacts','results']):state.contacts;
     const list=contacts.map(c=>{const cc={...c,name:first(c.name,c.title,'相談窓口'),role:first(c.role,c.description,''),phone:cleanContactValue(first(c.phone,c.tel,'')),hours:cleanContactValue(first(c.hours,'')),address:cleanContactValue(first(c.address,'')),officialUrl:safeUrl(first(c.officialUrl,c.url)),note:cleanContactValue(first(c.note,''))};return `<div class="contact"><h3>${esc(cc.name)}</h3>${cc.role?`<p>${esc(cc.role)}</p>`:''}${cc.phone?`<div class="phone"><a href="${esc(/^\d/.test(cc.phone)?'tel:'+cc.phone.replace(/[^\d+]/g,''):safeUrl(cc.phone))}">${esc(cc.phone)}</a></div>`:''}${cc.hours?`<p class="small">受付：${esc(cc.hours)}</p>`:''}${cc.address?`<p class="small">場所：${esc(cc.address)}</p>`:''}${cc.officialUrl?`<p><a href="${esc(cc.officialUrl)}" target="_blank" rel="noopener">公式情報を確認する</a></p>`:''}${cc.note?`<p class="small">${esc(cc.note)}</p>`:''}</div>`}).join('');
     const fallback=contacts.length?'':`<div class="contact"><h3>相談窓口を確認してください</h3><p>志木市役所または地域包括支援センターへ、困りごとの内容を伝えてください。</p><p><a href="https://www.city.shiki.lg.jp/" target="_blank" rel="noopener">志木市公式サイトを開く</a></p></div>`;
@@ -270,7 +272,10 @@
     const o=q.options.find(x=>String(first(x.value,x.id,x.label))===String(optionValue))||q.options.find(x=>String(x.id)===String(optionValue));if(!o)return;
     try{
       const r=await api('concierge',{themeId:state.currentTheme?.themeId,questionId:q.questionId,answer:first(o.value,o.label,o.id)});
-      if(applyQuestionResponse(r)){state.mode='question';render();return}
+      const d=dataOf(r);
+      // GASが最終結果を返したら、必ず相談先画面へ進める。
+      const isFinal=d.type==='result' || !!d.resultId || !!d.emergencyNotice;
+      if(!isFinal && applyQuestionResponse(r)){state.mode='question';render();return}
       state.lastResult=r;state.mode='result';render();
     }catch(e){state.lastResult={data:{matchedTheme:{name:state.currentTheme?.name},reason:'通信に失敗しました。もう一度お試しください。',contacts:state.contacts}};state.mode='result';render()}
   }
