@@ -33,6 +33,9 @@
     .card-body{padding:14px 14px 16px}
     .card h3{font-size:19px;line-height:1.35;margin:0 0 5px;color:var(--navy)}
     .card p{font-size:16px;line-height:1.5;margin:0;color:#49616d}
+    .image-card .card-body{padding:13px 14px 15px}
+    .image-card h3{font-size:18px;line-height:1.35;margin:0 0 7px;min-height:2.7em}
+    .image-card .card-hint{font-size:15px;color:#58717c}
     .image-card img{display:block;width:100%;height:145px;object-fit:cover;background:#e9f5fa}
     .image-placeholder{height:145px;background:linear-gradient(135deg,#dff4ff,#f9fdff);display:grid;place-items:center;color:#6a8794;font-size:16px;padding:12px;text-align:center}
     .actions{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:18px 0}
@@ -189,7 +192,13 @@
 
   function imageCard(im){
     const image=im.imageUrl ? `<img src="${esc(im.imageUrl)}" alt="${esc(im.fileName)}" loading="lazy">` : `<div class="image-placeholder">${esc(im.fileName)}</div>`;
-    return `<article class="card image-card"><button data-action="image" data-number="${esc(im.number)}">${image}<div class="card-body"><h3>${esc(im.fileName.replace(/\.png$/i,''))}</h3><p>このことで困っている</p></div></button></article>`;
+    const titles={
+      '1':'相談窓口','2':'空き家・住まい','3':'介護・施設入所','4':'医療・健康',
+      '5':'スマホ・電池','6':'ごみ・片付け','7':'相続・お金・契約',
+      '8':'防災・防犯','9':'近隣・地域トラブル','10':'回覧板・地域情報'
+    };
+    const title=titles[String(im.number)]||text(im.fileName).replace(/^\d+[_-]?/,'').replace(/\.png$/i,'');
+    return `<article class="card image-card"><button data-action="image" data-number="${esc(im.number)}">${image}<div class="card-body"><h3>${esc(title)}</h3><p class="card-hint">タップして相談する</p></div></button></article>`;
   }
   function homeView(){
     if(state.loading)return shell(APP_NAME,'<div class="loading">読み込み中です…</div>');
