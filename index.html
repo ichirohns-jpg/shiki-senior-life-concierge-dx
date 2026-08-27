@@ -42,6 +42,30 @@
     .actions{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:18px 0}
     .btn{min-height:54px;border:0;border-radius:15px;padding:12px 16px;font-weight:700;text-align:center;line-height:1.35;box-shadow:0 2px 7px rgba(0,0,0,.08)}
     .btn-primary{background:var(--green);color:#fff}.btn-blue{background:var(--blue);color:#fff}.btn-light{background:#fff;color:var(--navy);border:2px solid #aacddd}.btn-warn{background:#fff0ef;color:#922e28;border:2px solid #e5aaa4}.btn-small{min-height:44px;font-size:16px;padding:8px 12px}
+    .large-action{min-height:66px;font-size:20px}
+    .quick-search{background:#fff;border:3px solid #9dd3e8;border-radius:22px;padding:18px 16px;margin:18px 0;box-shadow:var(--shadow)}
+    .quick-search h2{font-size:24px;line-height:1.35;color:var(--navy);margin:0 0 5px}
+    .quick-search p{margin:0 0 12px;color:#49616d}
+    .search-row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:stretch}
+    .search-input{width:100%;min-height:58px;border:2px solid #a7d4e4;border-radius:14px;padding:10px 13px;background:#f8fdff;color:var(--text)}
+    .search-row .btn{min-height:58px;white-space:nowrap}
+    .search-hints{display:flex;flex-wrap:wrap;gap:7px;margin-top:10px}
+    .search-hint{border:1px solid #b7d9e6;border-radius:999px;background:#f4fbfe;color:#075d91;padding:6px 10px;font-size:15px}
+    .search-results{margin-top:14px;display:grid;gap:10px}
+    .search-results-title{font-size:18px;color:var(--navy);margin:4px 0 0}
+    .search-item{background:#f8fdff;border:2px solid #b5dcea;border-radius:16px;padding:13px 14px}
+    .search-item h3{font-size:19px;line-height:1.35;margin:0 0 4px;color:var(--navy)}
+    .search-item p{font-size:16px;line-height:1.5;margin:0 0 10px;color:#49616d}
+    .search-item-actions{display:flex;flex-wrap:wrap;gap:8px}
+    .voice-btn{min-height:54px!important}
+    .input-tools{display:grid;gap:9px}
+    .service-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:12px 0 18px}
+    .service-card{background:#fff;border:2px solid #c3dce6;border-radius:16px;padding:14px;box-shadow:0 2px 8px rgba(20,70,95,.08)}
+    .service-card h3{font-size:18px;line-height:1.35;color:var(--navy);margin:0 0 5px}
+    .service-card p{font-size:15px;line-height:1.5;color:#49616d;margin:0 0 9px}
+    .service-card .service-phone{font-size:18px;font-weight:800;display:block;margin:3px 0 7px}
+    .service-actions{display:flex;flex-wrap:wrap;gap:7px}
+    .service-actions .btn{flex:1 1 145px}
     .back{display:inline-flex;align-items:center;gap:5px;background:none;border:0;color:#075d91;padding:5px 0;margin-bottom:8px;text-decoration:underline;font-weight:700}
     .crumb{font-size:15px;color:#5d7682;margin:0 0 12px}
     .question-box{background:#fff;border:3px solid #9dd3e8;border-radius:22px;padding:20px 16px;box-shadow:var(--shadow)}
@@ -74,6 +98,7 @@
     .bottom-nav .icon{display:block;font-size:22px;line-height:1.1;margin-bottom:2px}
     .small{font-size:15px;color:#637b85}
     .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+    @media(max-width:560px){.search-row{grid-template-columns:1fr}.service-grid{grid-template-columns:1fr}}
     @media(min-width:680px){.grid{grid-template-columns:repeat(3,1fr)}.image-card img,.image-placeholder{height:175px}.wrap{padding:24px 20px}.actions{grid-template-columns:repeat(4,1fr)}}
   </style>
 </head>
@@ -92,7 +117,7 @@
   const GAS_URL = 'https://script.google.com/macros/s/AKfycbyr2yQs2XLts6VFlQE84CfeEam8VcWmr2y2vQsx_LtdrFA0ZBNfOeKqsDI9KRxX9jZnfA/exec';
   const APP_NAME = '志木市シニア生活相談DX';
   const BOARD_URL = 'https://ichirohns-jpg.github.io/ShikiConcierge-18/app.html';
-  const state = { mode:'home', home:null, images:[], themes:[], questions:[], contacts:[], articles:[], stack:[], currentTheme:null, currentQuestion:null, freeText:'', loading:false, loadingQuestion:false };
+  const state = { mode:'home', home:null, images:[], themes:[], questions:[], contacts:[], articles:[], stack:[], currentTheme:null, currentQuestion:null, freeText:'', reverseQuery:'', reverseMatches:[], loading:false, loadingQuestion:false };
   const $ = (s,root=document) => root.querySelector(s);
   const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const text = v => String(v ?? '').trim();
@@ -118,6 +143,30 @@
     {themeId:'T010',name:'防災・防犯',description:'避難、火災、電話詐欺、見守り、行方不明'},
     {themeId:'T011',name:'スマートフォン・手続き',description:'スマホ、電池、オンライン申請、マイナンバー'},
     {themeId:'T012',name:'居場所・生きがい',description:'地域の居場所、趣味、仕事、ボランティア、社会参加'}
+  ];
+  // 検索は「診断」ではなく、入力された言葉から近いテーマを探して
+  // スプレッドシートの質問分岐へ入るための入口として使う。
+  const REVERSE_LOOKUP=[
+    {themeId:'T001',label:'介護・認知症',description:'介護認定、介護サービス、もの忘れ、家族の介護負担',keywords:['介護','認知症','もの忘れ','物忘れ','要介護','要支援','ケアマネ','介護認定','徘徊','怒りっぽい']},
+    {themeId:'T002',label:'施設入所',description:'老人ホーム、施設の種類・費用、入所準備、身元保証',keywords:['施設','老人ホーム','特養','入所','ショートステイ','身元保証','施設費用']},
+    {themeId:'T003',label:'空き家・相続',description:'実家の管理、相続・名義、売却、賃貸、解体',keywords:['空き家','空家','実家','相続','名義','遺産','売却','賃貸','解体']},
+    {themeId:'T004',label:'一人暮らし・見守り',description:'安否確認、孤立、見守り、支援者がいない',keywords:['一人暮らし','独居','見守り','安否','孤立','ひとり','支援者がいない','外出しない']},
+    {themeId:'T005',label:'お金・生活困窮・詐欺',description:'生活費・家賃・年金、生活保護、詐欺、悪質商法',keywords:['お金がない','生活費','家賃','生活保護','食べるものがない','年金','財産管理','詐欺','悪質商法','不審な請求','だまされた']},
+    {themeId:'T006',label:'近隣・地域トラブル',description:'ごみ屋敷、騒音、悪臭、庭木、境界、嫌がらせ',keywords:['ごみ屋敷','ゴミ屋敷','ごみ','ゴミ','悪臭','害虫','騒音','庭木','境界','嫌がらせ','近所','自治会']},
+    {themeId:'T007',label:'健康・医療',description:'病院、通院、薬、退院、体力、栄養、口腔の相談',keywords:['病院','通院','薬','飲み忘れ','退院','体力','ふらつく','転ぶ','痛い','熱','息苦しい','食欲','栄養','口腔','歯']},
+    {themeId:'T008',label:'食事・生活支援',description:'配食、買い物、掃除、洗濯、ごみ出し、家事',keywords:['配食','弁当','買い物','掃除','洗濯','ごみ出し','家事','料理','食事を作れない']},
+    {themeId:'T009',label:'交通・移動',description:'免許返納、通院・買い物、バス、移動支援',keywords:['免許返納','運転','車','通院に行けない','買い物に行けない','バス','移動支援','タクシー']},
+    {themeId:'T010',label:'防災・防犯',description:'避難所、防災、ハザードマップ、個別避難計画、電話詐欺',keywords:['防災','防犯','避難所','避難場所','避難','ハザードマップ','個別避難計画','台風','地震','洪水','火災','電話詐欺','行方不明']},
+    {themeId:'T011',label:'スマートフォン・手続き',description:'スマホ操作、電池・機器、オンライン申請、マイナンバー',keywords:['スマホ','スマートフォン','携帯','電池','操作','設定','オンライン申請','電子申請','マイナンバー','暗証番号']},
+    {themeId:'T012',label:'居場所・生きがい',description:'地域の居場所、趣味、仕事、ボランティア、社会参加',keywords:['居場所','サロン','趣味','仕事','ボランティア','社会参加','生きがい','友だち']}
+  ];
+  const QUICK_SERVICES=[
+    {id:'shelter',title:'避難所・避難場所',description:'志木市の指定緊急避難場所・指定避難所の一覧',phone:'048-473-1123',officialUrl:'https://www.city.shiki.lg.jp/soshiki/11/3190.html',themeId:'T010'},
+    {id:'hazard',title:'ハザードマップ',description:'洪水・地震などの危険区域と避難情報を確認',phone:'048-473-1123',officialUrl:'https://www.city.shiki.lg.jp/soshiki/11/3184.html',themeId:'T010'},
+    {id:'individual-plan',title:'個別避難計画',description:'一人で避難することが難しい方の避難計画',phone:'048-473-1123',officialUrl:'https://www.city.shiki.lg.jp/soshiki/11/19677.html',themeId:'T010'},
+    {id:'life-support',title:'生活保護・生活困窮',description:'生活費・家賃・食事、病気で働けないとき',phone:'048-473-1457',officialUrl:'https://www.city.shiki.lg.jp/soshiki/19/2688.html',themeId:'T005'},
+    {id:'consumer',title:'詐欺・悪質商法',description:'不審な電話、契約、請求、支払いの相談',phone:'048-456-6202',officialUrl:'https://www.city.shiki.lg.jp/soshiki/17/2173.html',themeId:'T005'},
+    {id:'digital',title:'スマホ・オンライン申請',description:'スマホ操作や市役所のオンライン手続き',phone:'048-473-1291',officialUrl:'https://www.city.shiki.lg.jp/soshiki/5/32094.html',themeId:'T011'}
   ];
   // スプレッドシートの仮入力を市民向け画面に表示しない
   const isPlaceholder = (value) => /^(要登録|未登録|未確認|要確認|登録予定|準備中)$/u.test(text(value));
@@ -225,6 +274,71 @@
     const title=titles[String(im.number)]||text(im.fileName).replace(/^\d+[_-]?/,'').replace(/\.png$/i,'');
     return `<article class="card image-card"><button data-action="image" data-number="${esc(im.number)}">${image}<div class="card-body"><h3>${esc(title)}</h3><p class="card-hint">タップして相談する</p></div></button></article>`;
   }
+  function normalizeSearch(value){
+    return text(value).toLocaleLowerCase().replace(/[ 　・、。,.／/\\]/g,'').replace(/ゴミ/g,'ごみ');
+  }
+  function reverseLookup(value){
+    const query=normalizeSearch(value);if(!query)return [];
+    const matches=[];
+    REVERSE_LOOKUP.forEach(item=>{
+      let score=0;
+      item.keywords.forEach(keyword=>{
+        const key=normalizeSearch(keyword);
+        if(!key)return;
+        if(query===key)score=Math.max(score,100+key.length);
+        else if(query.includes(key))score=Math.max(score,30+key.length*2);
+        else if(key.includes(query)&&query.length>=2)score=Math.max(score,18+query.length*2);
+      });
+      if(score>0)matches.push({kind:'theme',score,themeId:item.themeId,title:item.label,description:item.description});
+    });
+    QUICK_SERVICES.forEach(service=>{
+      const haystack=normalizeSearch(service.title+' '+service.description);
+      let score=0;
+      if(query===normalizeSearch(service.title))score=120;
+      else if(haystack.includes(query)&&query.length>=2)score=70;
+      else if(query.includes(normalizeSearch(service.title).slice(0,4)))score=45;
+      if(score>0)matches.push({kind:'service',score,service});
+    });
+    return matches.sort((a,b)=>b.score-a.score).slice(0,6);
+  }
+  function serviceCard(service,searchResult=false){
+    const phone=text(service.phone).replace(/[^\d+]/g,'');
+    const theme=findTheme(service.themeId);
+    return `<article class="service-card"><h3>${esc(service.title)}</h3><p>${esc(service.description)}</p>${phone?`<a class="service-phone" href="tel:${esc(phone)}">電話 ${esc(service.phone)}</a>`:''}<div class="service-actions"><a class="btn btn-blue btn-small" href="${esc(service.officialUrl)}" target="_blank" rel="noopener">公式ページ</a>${theme?`<button class="btn btn-light btn-small" data-action="theme" data-theme="${esc(theme.themeId)}">質問を始める</button>`:''}</div></article>`;
+  }
+  function quickServicesHtml(){
+    return `<h2 class="section-title">志木市の主な案内</h2><p class="small">すぐ確認したい行政サービスはこちらです。詳しい相談は質問へ進めます。</p><section class="service-grid">${QUICK_SERVICES.map(serviceCard).join('')}</section>`;
+  }
+  function reverseSearchPanel(){
+    const hints=['ゴミ屋敷','避難所','生活保護','免許返納','薬','スマホ'];
+    const results=state.reverseQuery?`<div class="search-results" aria-live="polite"><h3 class="search-results-title">「${esc(state.reverseQuery)}」の近い案内</h3>${state.reverseMatches.length?state.reverseMatches.map(match=>{
+      if(match.kind==='service')return serviceCard(match.service,true);
+      const theme=findTheme(match.themeId);
+      return `<article class="search-item"><h3>${esc(match.title)}</h3><p>${esc(match.description)}</p><div class="search-item-actions">${theme?`<button class="btn btn-primary btn-small" data-action="theme" data-theme="${esc(theme.themeId)}">このテーマの質問を始める</button>`:''}</div></article>`;
+    }).join(''):`<div class="empty">近い案内が見つかりませんでした。別の言葉で検索するか、テーマを選んでください。</div>`}</div>`:'';
+    return `<section class="quick-search"><h2>困りごとをすぐ探す</h2><p>症状やキーワードを入力すると、近いテーマの質問と公式案内を表示します。</p><div class="search-row"><label class="sr-only" for="reverseSearch">困りごと検索</label><input class="search-input" id="reverseSearch" value="${esc(state.reverseQuery)}" placeholder="例：ゴミ屋敷、避難所、薬、免許返納"><button class="btn btn-primary" data-action="run-search">検索</button></div><div class="search-hints" aria-label="検索例">${hints.map(h=>`<button class="search-hint" data-action="search-hint" data-query="${esc(h)}">${esc(h)}</button>`).join('')}</div><div class="search-row" style="margin-top:9px"><button class="btn btn-light voice-btn" data-action="voice-input" data-target="reverseSearch">🎙 音声で入力</button><button class="btn btn-light voice-btn" data-action="clear-search">検索を消す</button></div>${results}</section>`;
+  }
+  function startVoiceInput(targetId){
+    const input=document.getElementById(targetId);
+    const SpeechRecognition=window.SpeechRecognition||window.webkitSpeechRecognition;
+    if(!input)return;
+    if(!SpeechRecognition){alert('このブラウザでは音声入力に対応していません。文字で入力してください。');return}
+    const recognition=new SpeechRecognition();
+    recognition.lang='ja-JP';recognition.interimResults=false;recognition.maxAlternatives=1;
+    recognition.onresult=(event)=>{
+      const value=text(event.results?.[0]?.[0]?.transcript);
+      if(value){input.value=value;if(targetId==='reverseSearch')state.reverseQuery=value;}
+    };
+    recognition.onerror=()=>alert('音声を認識できませんでした。もう一度お試しください。');
+    try{recognition.start()}catch(ignore){alert('音声入力を開始できませんでした。文字で入力してください。')}
+  }
+  function runReverseSearch(){
+    const input=text($('#reverseSearch')?.value);
+    if(!input){alert('困りごとを入力してください。');return}
+    state.reverseQuery=input;state.reverseMatches=reverseLookup(input);
+    if(state.mode==='home')state.mode='concierge';
+    render();
+  }
   function homeView(){
     if(state.loading)return shell(APP_NAME,'<div class="loading">読み込み中です…</div>');
     if(state.home?.error)return shell(APP_NAME,errorBox(state.home.error));
@@ -232,8 +346,9 @@
     const d=dataOf(state.home),desc=first(d.description,'高齢者と家族が、困りごとを一つずつ整理して、相談先までたどり着くための案内です。');
     const cards=state.images.length?state.images.map(imageCard).join(''):'<div class="empty">画像一覧を読み込めませんでした。</div>';
     return shell(APP_NAME,`<img class="home-banner" src="banner_akiya_soudan.png" alt="空き家について家族で相談している様子" loading="eager"><section class="hero"><h2>困ったことを<br>一緒に整理します</h2><p>${esc(desc)}</p></section>
-      <div class="actions"><button class="btn btn-primary" data-action="concierge">相談を始める</button><button class="btn btn-blue" data-action="board">回覧板を見る</button></div>
+      <div class="actions"><button class="btn btn-primary large-action" data-action="concierge">相談を始める</button><button class="btn btn-blue large-action" data-action="board">回覧板を見る</button></div>
       <div class="notice">緊急の場合は、この案内だけで判断せず、119番・110番・近くの人へ連絡してください。</div>
+      ${reverseSearchPanel()}${quickServicesHtml()}
       <h2 class="section-title">困りごとの入口</h2><p class="small">近いものをタップしてください。次の質問で少しずつ絞り込みます。</p><section class="grid">${cards}</section>`);
   }
 
@@ -294,7 +409,7 @@
   function conciergeView(){
     normalizeThemes();
     const body=state.themes.length?state.themes.map(t=>`<article class="card"><button data-action="theme" data-theme="${esc(t.themeId)}"><div class="card-body"><h3>${esc(t.name)}</h3><p>${esc(t.description)}</p></div></button></article>`).join(''):'<div class="empty">相談テーマを読み込んでいます。</div>';
-    return shell('相談を始める',`<section class="hero"><h2>どんなことで<br>困っていますか？</h2><p>一番近いものを選ぶと、質問を重ねて相談先まで案内します。</p></section><section class="grid">${body}</section><div class="notice">うまく選べないときは「文章で相談する」を使えます。</div><button class="btn btn-light" data-action="free">文章で相談する</button>`,true);
+    return shell('相談を始める',`<section class="hero"><h2>どんなことで<br>困っていますか？</h2><p>言葉で探すか、近いテーマを選ぶと、質問を重ねて相談先まで案内します。</p></section>${reverseSearchPanel()}<h2 class="section-title">テーマから選ぶ</h2><section class="grid">${body}</section>${quickServicesHtml()}<div class="notice">うまく選べないときは「文章で相談する」を使えます。</div><button class="btn btn-light large-action" data-action="free">文章で相談する</button>`,true);
   }
   function questionView(){
     if(state.loadingQuestion)return shell('相談を整理しています','<div class="loading">最初の質問を読み込んでいます…</div>',true);
@@ -305,7 +420,7 @@
     return shell('相談を整理しています',`${inputSummary}<p class="crumb">${esc(state.currentTheme?.name||'相談')}　質問 ${state.stack.length}</p><section class="question-box"><div class="question-count">一つずつ選んでください</div><h2>${esc(q.text)}</h2>${q.help?`<p class="small">${esc(q.help)}</p>`:''}<div class="choices">${options}</div></section><div class="actions"><button class="btn btn-light" data-action="question-back">前の質問</button><button class="btn btn-light" data-action="free">文章で相談</button></div>`,true);
   }
   function freeView(){
-    return shell('文章で相談する',`<p>困っていることを、短い文章で入力してください。</p><label class="field-label" for="freeText">相談内容</label><textarea id="freeText" placeholder="例：施設に入るので、家をどうしたらよいか分からない"></textarea><div class="actions"><button class="btn btn-primary" data-action="send-free">相談先を探す</button><button class="btn btn-light" data-action="concierge">テーマから選ぶ</button></div><p class="small">送信内容は相談先を探すために使います。緊急情報は入力せず、直接119番などへ連絡してください。</p>`,true);
+    return shell('文章で相談する',`<p>困っていることを、短い文章で入力してください。</p><label class="field-label" for="freeText">相談内容</label><div class="input-tools"><textarea id="freeText" placeholder="例：施設に入るので、家をどうしたらよいか分からない">${esc(state.freeText)}</textarea><button class="btn btn-light voice-btn" data-action="voice-input" data-target="freeText">🎙 音声で入力する</button></div><div class="actions"><button class="btn btn-primary large-action" data-action="send-free">相談先を探す</button><button class="btn btn-light large-action" data-action="concierge">テーマから選ぶ</button></div><p class="small">送信内容は相談先を探すために使います。緊急情報は入力せず、直接119番などへ連絡してください。</p>`,true);
   }
   function resultView(result){
     const d=dataOf(result);const matched=first(d.matchedTheme?.name,d.theme?.name,d.themeName,state.currentTheme?.name,'相談結果');
@@ -430,6 +545,10 @@
     if(action==='themes'){if(!state.themes.length)await loadThemes();state.mode='themes';render();return}
     if(action==='board'){if(!state.articles.length)await loadBoard();state.mode='board';render();return}
     if(action==='free'){state.mode='free';render();return}
+    if(action==='run-search'){runReverseSearch();return}
+    if(action==='search-hint'){state.reverseQuery=text(el.dataset.query);state.reverseMatches=reverseLookup(state.reverseQuery);if(state.mode==='home')state.mode='concierge';render();return}
+    if(action==='clear-search'){state.reverseQuery='';state.reverseMatches=[];render();return}
+    if(action==='voice-input'){startVoiceInput(el.dataset.target);return}
     if(action==='theme'){const t=findTheme(el.dataset.theme);if(t)await startQuestion(t);return}
     if(action==='answer'){await answer(el.dataset.option);return}
     if(action==='question-back'){if(state.stack.length>1){state.stack.pop();render()}else{state.mode='concierge';render()}return}
