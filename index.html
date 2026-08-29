@@ -250,13 +250,13 @@
     state.articles=arr(raw).map(x=>({date:first(x.date,x.publishedAt,x.createdAt,''),title:first(x.title,x.name,'地域のお知らせ'),body:first(x.body,x.detail,x.description,''),image:safeUrl(first(x.imageUrl,x.image,x.thumbnail)),applyUrl:safeUrl(first(x.applyUrl,x.applicationUrl)),officialUrl:safeUrl(first(x.officialUrl,x.cityUrl,x.url))}));
   }
 
-  async function loadHome(){
-    state.loading=true;render();
+  async function loadHome(background=false){
+    if(!background){state.loading=true;render();}
     try{
       const res=await api('home');state.home=res;const d=dataOf(res);
       state.images=arrFrom(d,['images']);state.themes=arrFrom(d,['themes']);state.contacts=arrFrom(d,['contacts']);state.articles=arrFrom(d,['articles','publicArticles']);
       normalizeImages();normalizeThemes();normalizeContacts(state.contacts);normalizeArticles(state.articles);state.mode='home';
-    }catch(e){state.home={error:e};}
+    }catch(e){if(!state.home?.data)state.home={error:e};}
     state.loading=false;render();
   }
   async function loadImages(){try{const r=await api('images');state.images=arrFrom(dataOf(r),['images']);normalizeImages()}catch(e){if(!state.images.length)state.home={error:e}}}
@@ -456,7 +456,7 @@
 
   function boardView(){
     const list=state.articles.length?state.articles.map(a=>`<article class="article">${a.date?`<div class="date">${esc(a.date)}</div>`:''}<h3>${esc(a.title)}</h3>${a.image?`<img src="${esc(a.image)}" alt="" loading="lazy">`:''}${a.body?`<p>${esc(a.body).replace(/\n/g,'<br>')}</p>`:''}<div class="article-actions">${a.applyUrl?`<a class="btn btn-blue btn-small" href="${esc(a.applyUrl)}">申込・詳細</a>`:''}${a.officialUrl?`<a class="btn btn-light btn-small" href="${esc(a.officialUrl)}">公式ページ</a>`:''}</div></article>`).join(''):'<div class="empty">現在公開されている回覧板情報はありません。</div>';
-    return shell('回覧板・地域情報',`<p class="crumb">高齢者や家族に役立つ地域のお知らせです。</p><div class="article-actions"><a class="btn btn-blue" href="${BOARD_URL}">回覧板を開く</a></div>${list}`,true);
+    return shell('回覧板・地域情報',`<p class="crumb">高齢者や家族に役立つ地域のお知らせです。</p><div class="article-actions"><a class="btn btn-light" href="https://ichirohns-jpg.github.io/shiki-senior-life-concierge-dx/">ホームへ戻る</a><a class="btn btn-blue" href="${BOARD_URL}" target="_blank" rel="noopener">回覧板を開く</a></div>${list}`,true);
   }
 
   function render(){
@@ -473,9 +473,10 @@
   }
 
   async function begin(){
-    if(!state.home)await loadHome();
-    if(!state.themes.length)await loadThemes();
-    render();
+    // 通信を待たず、まず操作できるホームを表示する。
+    state.home={data:{description:'高齢者と家族が、困りごとを一つずつ整理して、相談先までたどり着くための案内です。',themes:LOCAL_THEME_CATALOG,images:[],contacts:[],articles:[]}};
+    normalizeThemes();state.loading=false;render();
+    loadHome(true);
   }
   async function answer(optionValue){
     const q=state.currentQuestion||findQuestion(state.stack[state.stack.length-1]);if(!q)return;
